@@ -45,6 +45,7 @@ export function CitySetupLayout() {
             </Button>
             <div className="mx-1 h-4 w-px bg-border" />
             <ModeToggle />
+            <div className="mx-1 h-4 w-px bg-border" />
             <div className="flex items-center gap-2 pl-1">
               <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                 {userInitials}
