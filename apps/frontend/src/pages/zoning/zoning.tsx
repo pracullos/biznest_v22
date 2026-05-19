@@ -18,6 +18,7 @@ import { MapDrawPanel, mapSelectCls } from '@/components/map/map-draw-panel'
 import { MapUploadPanel } from '@/components/map/map-upload-panel'
 import { type ZoneType, ZONING_DRAW_INITIAL, zoningDrawReducer } from '@/reducer/zoning-draw.reducer'
 import { ZONING_UPLOAD_INITIAL, zoningUploadReducer } from '@/reducer/zoning-upload.reducer'
+import { ZONE_TYPE_LABELS } from '@/config/hazard.config'
 
 const ZONE_TYPES: ZoneType[] = ['residential', 'commercial', 'industrial', 'agriculture']
 
@@ -61,13 +62,8 @@ export function ZoningPage() {
   }
 
   // ── Draw with callback — no bridge effect needed ──────────────────────────
-  const draw = useDrawPolygon(engine, (geometry, pointCount, mode) => {
-    if (mode === 'draw_freehand') {
-      dispatchDraw({ type: 'FREEHAND_COMPLETE', geometry, pointCount })
-      void saveZoningGeometry(geometry)
-    } else {
-      dispatchDraw({ type: 'SHAPE_DRAWN', geometry, pointCount })
-    }
+  const draw = useDrawPolygon(engine, (geometry, pointCount) => {
+    dispatchDraw({ type: 'SHAPE_DRAWN', geometry, pointCount })
   })
 
   useEffect(() => {
@@ -85,9 +81,10 @@ export function ZoningPage() {
   function handleCancelDrawing() { dispatchDraw({ type: 'CANCEL_DRAWING' }); draw.deactivate() }
 
   async function handleDrawSave() {
-    if (!drawState.geometry || !cityId) return
+    const geometry = draw.getLatestGeometry() ?? drawState.geometry
+    if (!geometry || !cityId) return
     dispatchDraw({ type: 'SAVE_START' })
-    await saveZoningGeometry(drawState.geometry)
+    await saveZoningGeometry(geometry)
   }
 
   async function handleUploadSave() {
@@ -176,7 +173,7 @@ export function ZoningPage() {
                           <select disabled={locked} value={drawState.zoneType}
                             onChange={e => dispatchDraw({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
                             className={mapSelectCls}>
-                            {ZONE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                            {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
                           </select>
                         </div>
                       )
@@ -200,7 +197,7 @@ export function ZoningPage() {
                           <select disabled={locked} value={uploadState.zoneType}
                             onChange={e => dispatchUpload({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
                             className={mapSelectCls}>
-                            {ZONE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                            {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
                           </select>
                         </div>
                       )

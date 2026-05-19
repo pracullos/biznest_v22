@@ -1,8 +1,7 @@
 import type { Polygon } from 'geojson'
 
-export type HazardType     = 'flood' | 'landslide' | 'storm_surge' | 'debris_flow' | 'faultline'
-export type HazardScenario = '5yr' | '25yr' | '100yr' | 'ssa1' | 'ssa2' | 'ssa3' | 'ssa4'
-export type DrawMode       = 'draw_polygon' | 'draw_freehand'
+export type HazardType = 'flood' | 'landslide' | 'storm_surge' | 'debris_flow' | 'faultline'
+export type DrawMode   = 'draw_polygon' | 'draw_freehand'
 
 /** Phases a drawing session can be in — transitions enforced by reducer. */
 export type HazardDrawPhase =
@@ -16,7 +15,7 @@ export type HazardDrawPhase =
 export interface HazardDrawState {
   phase:      HazardDrawPhase
   hazardType: HazardType
-  scenario:   HazardScenario
+  scenario:   string | null
   severity:   number          // 1–5
   drawMode:   DrawMode
   geometry:   Polygon | null
@@ -26,7 +25,7 @@ export interface HazardDrawState {
 
 export type HazardDrawAction =
   | { type: 'SET_HAZARD_TYPE';    hazardType: HazardType }
-  | { type: 'SET_SCENARIO';       scenario:   HazardScenario }
+  | { type: 'SET_SCENARIO';       scenario:   string | null }
   | { type: 'SET_SEVERITY';       severity:   number }
   | { type: 'SET_DRAW_MODE';      drawMode:   DrawMode }
   | { type: 'START_DRAWING' }
@@ -85,7 +84,7 @@ export function hazardDrawReducer(
 
     case 'FREEHAND_COMPLETE':
       if (state.phase !== 'drawing') return state
-      return { ...state, phase: 'saving', geometry: action.geometry, pointCount: action.pointCount, errorMsg: null }
+      return { ...state, phase: 'drawn', geometry: action.geometry, pointCount: action.pointCount, errorMsg: null }
 
     case 'CLEAR_SHAPE':
       if (state.phase !== 'drawn') return state

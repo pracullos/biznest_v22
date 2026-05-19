@@ -92,51 +92,36 @@ export function MapDrawPanel({
         </Button>
       )}
 
-      {/* Polygon mode: manual start → shape ready → explicit save */}
-      {drawMode === 'draw_polygon' && (
-        <>
-          {(phase === 'configuring' || phase === 'drawn') && (
-            <Button size="sm" className="w-full text-xs h-8" onClick={onStartDrawing}>
-              {phase === 'drawn' ? 'Redraw' : 'Start Drawing'}
-            </Button>
-          )}
-          {(phase === 'drawn' || phase === 'error') && geometry && (
-            <div className="rounded-md bg-muted/60 px-3 py-2 text-[11px] flex items-center gap-2">
-              <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />
-              <span>Shape ready · <span className="font-medium tabular-nums">{pointCount} pts</span></span>
-              <button onClick={onClearShape}
-                className="ml-auto text-[10px] text-muted-foreground hover:text-foreground">Clear</button>
-            </div>
-          )}
-          {phase === 'drawn' && (
-            <Button size="sm" className="w-full text-xs h-8" onClick={() => void onSave()}>Save to Map</Button>
-          )}
-          {phase === 'error' && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start gap-1.5 text-xs text-destructive">
-                <XCircle className="size-3.5 mt-0.5 shrink-0" /><span>{errorMsg}</span>
-              </div>
-              <Button size="sm" className="w-full text-xs h-8" onClick={() => void onSave()}>Retry Save</Button>
-            </div>
-          )}
-        </>
+      {/* Start / Redraw — both modes */}
+      {(phase === 'configuring' || phase === 'drawn') && (
+        <Button size="sm" className="w-full text-xs h-8" onClick={onStartDrawing}>
+          {phase === 'drawn' ? 'Redraw' : 'Start Drawing'}
+        </Button>
       )}
 
-      {/* Freehand mode: auto-saves on release */}
-      {drawMode === 'draw_freehand' && (
-        <>
-          {phase === 'configuring' && (
-            <Button size="sm" className="w-full text-xs h-8" onClick={onStartDrawing}>Start Drawing</Button>
-          )}
-          {phase === 'error' && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start gap-1.5 text-xs text-destructive">
-                <XCircle className="size-3.5 mt-0.5 shrink-0" /><span>{errorMsg}</span>
-              </div>
-              <Button size="sm" className="w-full text-xs h-8" onClick={() => void onSave()}>Retry Save</Button>
-            </div>
-          )}
-        </>
+      {/* Shape ready — both modes */}
+      {(phase === 'drawn' || phase === 'error') && geometry && (
+        <div className="rounded-md bg-muted/60 px-3 py-2 text-[11px] flex items-center gap-2">
+          <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />
+          <span>Shape ready · <span className="font-medium tabular-nums">{pointCount} pts</span></span>
+          <button onClick={onClearShape}
+            className="ml-auto text-[10px] text-muted-foreground hover:text-foreground">Clear</button>
+        </div>
+      )}
+
+      {/* Save — both modes */}
+      {phase === 'drawn' && (
+        <Button size="sm" className="w-full text-xs h-8" onClick={() => void onSave()}>Save to Map</Button>
+      )}
+
+      {/* Error — both modes */}
+      {phase === 'error' && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start gap-1.5 text-xs text-destructive">
+            <XCircle className="size-3.5 mt-0.5 shrink-0" /><span>{errorMsg}</span>
+          </div>
+          <Button size="sm" className="w-full text-xs h-8" onClick={() => void onSave()}>Retry Save</Button>
+        </div>
       )}
 
       {/* Shared: saving + saved (both modes) */}
