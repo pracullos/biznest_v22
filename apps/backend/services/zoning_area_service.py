@@ -141,8 +141,8 @@ def process_zoning_image(
             resolved_labels.append(hex_c if n == 1 else f"{hex_c} ({n})")
     labels = resolved_labels
 
-    # Vectorize contours → geo polygons → ZoningArea records
-    created_zones: list[tuple[ZoningArea, object, str | None]] = []  # (db, poly, color_hex)
+    # Vectorize contours → geo polygons → clip to city boundary → ZoningArea records
+    created_zones: list[tuple[ZoningArea, object, str | None]] = []  # (zone, clipped_poly, color_hex)
     skipped = 0
 
     for (contour, color_rgb), zone_type in zip(contours_with_colors, labels):
@@ -150,16 +150,35 @@ def process_zoning_image(
         if poly is None:
             skipped += 1
             continue
+
+        # Clip to city boundary — skip zones that are entirely outside
+        try:
+            clipped_geom = clip_to_city_boundary(dict(mapping(poly)), city_id, db)
+            clipped_poly = shape(clipped_geom)
+            if clipped_poly.is_empty or not clipped_poly.is_valid:
+                skipped += 1
+                continue
+        except HTTPException as exc:
+            if exc.status_code == 422:
+                # Entirely outside boundary — skip silently
+                skipped += 1
+                continue
+            if exc.status_code == 404 and "boundary" in str(exc.detail):
+                # City has no boundary — persist unclipped
+                clipped_poly = poly
+            else:
+                raise
+
         color_hex = gps.color_to_hex(color_rgb)
         zone = ZoningArea(
             city_id=city_id,
             zone_type=zone_type,
             color_hex=color_hex,
-            geometry=from_shape(poly, srid=4326),
+            geometry=from_shape(clipped_poly, srid=4326),
             created_by=user_id,
         )
         db.add(zone)
-        created_zones.append((zone, poly, color_hex))
+        created_zones.append((zone, clipped_poly, color_hex))
 
     if not created_zones:
         raise HTTPException(
