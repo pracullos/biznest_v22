@@ -88,7 +88,7 @@ function CitySwitcher({ cityIds }: { cityIds: string[] }) {
     enabled: cityIds.length > 0,
   });
 
-  const myCities: CityResponse[] = allCities.filter((c) =>
+  const myCities: CityResponse[] = allCities.filter((c: CityResponse) =>
     cityIds.includes(c.id),
   );
 
@@ -124,7 +124,7 @@ function CitySwitcher({ cityIds }: { cityIds: string[] }) {
                 {myCities.map((city) => (
                   <DropdownMenuItem
                     key={city.id}
-                    onClick={() => void selectCity(city.id)}
+                    onClick={() => void selectCity(city)}
                     className="gap-2"
                   >
                     <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
