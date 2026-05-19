@@ -76,7 +76,7 @@ export function zoningDrawReducer(
 
     case 'FREEHAND_COMPLETE':
       if (state.phase !== 'drawing') return state
-      return { ...state, phase: 'saving', geometry: action.geometry, pointCount: action.pointCount, errorMsg: null }
+      return { ...state, phase: 'drawn', geometry: action.geometry, pointCount: action.pointCount, errorMsg: null }
 
     case 'CLEAR_SHAPE':
       if (state.phase !== 'drawn') return state

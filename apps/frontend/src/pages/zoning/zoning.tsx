@@ -16,14 +16,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils'
 import { MapDrawPanel, mapSelectCls } from '@/components/map/map-draw-panel'
 import { MapUploadPanel } from '@/components/map/map-upload-panel'
+import { MapOcrPanel } from '@/components/map/map-ocr-panel'
 import { type ZoneType, ZONING_DRAW_INITIAL, zoningDrawReducer } from '@/reducer/zoning-draw.reducer'
 import { ZONING_UPLOAD_INITIAL, zoningUploadReducer } from '@/reducer/zoning-upload.reducer'
+import { ZONE_TYPE_LABELS } from '@/config/hazard.config'
+import { useGeoreference } from './composables/use-georeference'
+import { useQueryClient } from '@tanstack/react-query'
 
 const ZONE_TYPES: ZoneType[] = ['residential', 'commercial', 'industrial', 'agriculture']
 
-type ActivePanel = 'draw' | 'upload' | null
+type ActivePanel = 'draw' | 'upload' | 'ocr' | null
 
-const PANEL_BUTTONS: { id: NonNullable<ActivePanel> | 'ocr'; icon: LucideIcon; label: string }[] = [
+const PANEL_BUTTONS: { id: NonNullable<ActivePanel>; icon: LucideIcon; label: string }[] = [
   { id: 'draw',   icon: PenLine,  label: 'Draw Zoning Area' },
   { id: 'upload', icon: Upload,   label: 'Upload GeoJSON' },
   { id: 'ocr',    icon: ScanText, label: 'OCR + Georeferencing' },
@@ -34,7 +38,8 @@ const PANEL_BUTTONS: { id: NonNullable<ActivePanel> | 'ocr'; icon: LucideIcon; l
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function ZoningPage() {
-  const navigate = useNavigate()
+  const navigate     = useNavigate()
+  const queryClient  = useQueryClient()
 
   const outerCtx = useMapContext()
   const { selectedCity, cityId, cityBoundary } = useCityContext()
@@ -49,6 +54,11 @@ export function ZoningPage() {
   const [uploadState, dispatchUpload] = useReducer(zoningUploadReducer, ZONING_UPLOAD_INITIAL)
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
 
+  const geo = useGeoreference(engine, cityId ?? null, cityBoundary ?? null, () => {
+    void queryClient.invalidateQueries({ queryKey: [`/cities/${cityId}/zoning`] })
+    void queryClient.invalidateQueries({ queryKey: [`/cities/${cityId}/zoning/pmtiles`] })
+  })
+
   async function saveZoningGeometry(geometry: Polygon) {
     await saveWithDispatch(
         async () => {
@@ -61,13 +71,8 @@ export function ZoningPage() {
   }
 
   // ── Draw with callback — no bridge effect needed ──────────────────────────
-  const draw = useDrawPolygon(engine, (geometry, pointCount, mode) => {
-    if (mode === 'draw_freehand') {
-      dispatchDraw({ type: 'FREEHAND_COMPLETE', geometry, pointCount })
-      void saveZoningGeometry(geometry)
-    } else {
-      dispatchDraw({ type: 'SHAPE_DRAWN', geometry, pointCount })
-    }
+  const draw = useDrawPolygon(engine, (geometry, pointCount) => {
+    dispatchDraw({ type: 'SHAPE_DRAWN', geometry, pointCount })
   })
 
   useEffect(() => {
@@ -77,17 +82,25 @@ export function ZoningPage() {
   }, [engine, cityBoundary])
 
   function handleTogglePanel(panel: ActivePanel) {
-    if (activePanel === panel) { if (panel === 'draw') draw.deactivate(); setActivePanel(null) }
-    else { if (activePanel === 'draw') draw.deactivate(); setActivePanel(panel) }
+    if (activePanel === panel) {
+      if (panel === 'draw') draw.deactivate()
+      if (panel === 'ocr') geo.reset()
+      setActivePanel(null)
+    } else {
+      if (activePanel === 'draw') draw.deactivate()
+      if (activePanel === 'ocr') geo.reset()
+      setActivePanel(panel)
+    }
   }
 
   function handleStartDrawing()  { dispatchDraw({ type: 'START_DRAWING' }); void draw.activate(drawState.drawMode) }
   function handleCancelDrawing() { dispatchDraw({ type: 'CANCEL_DRAWING' }); draw.deactivate() }
 
   async function handleDrawSave() {
-    if (!drawState.geometry || !cityId) return
+    const geometry = draw.getLatestGeometry() ?? drawState.geometry
+    if (!geometry || !cityId) return
     dispatchDraw({ type: 'SAVE_START' })
-    await saveZoningGeometry(drawState.geometry)
+    await saveZoningGeometry(geometry)
   }
 
   async function handleUploadSave() {
@@ -145,7 +158,9 @@ export function ZoningPage() {
               <CardHeader className="pb-0 pt-3 px-3 shrink-0">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xs font-semibold">
-                    {activePanel === 'draw' ? 'Draw Zoning Area' : 'Upload GeoJSON'}
+                    {activePanel === 'draw' ? 'Draw Zoning Area'
+                     : activePanel === 'upload' ? 'Upload GeoJSON'
+                     : 'OCR + Georeferencing'}
                   </CardTitle>
                   <Button variant="ghost" size="icon" className="size-6 text-muted-foreground hover:text-foreground"
                     onClick={() => handleTogglePanel(activePanel)}>
@@ -155,7 +170,22 @@ export function ZoningPage() {
               </CardHeader>
               <Separator className="mt-2 shrink-0" />
               <CardContent className="flex flex-col flex-1 min-h-0 p-0">
-                {activePanel === 'draw' ? (
+                {activePanel === 'ocr' ? (
+                  <MapOcrPanel
+                    phase={geo.phase}
+                    result={geo.result}
+                    errorMsg={geo.errorMsg}
+                    opacity={geo.opacity}
+                    nColors={geo.nColors}
+                    minAreaPx={geo.minAreaPx}
+                    handleFile={geo.handleFile}
+                    updateOpacity={geo.updateOpacity}
+                    setNColors={geo.setNColors}
+                    setMinAreaPx={geo.setMinAreaPx}
+                    submit={geo.submit}
+                    reset={() => { geo.reset(); setActivePanel(null) }}
+                  />
+                ) : activePanel === 'draw' ? (
                   <MapDrawPanel
                     phase={drawState.phase} drawMode={drawState.drawMode}
                     severity={drawState.severity} pointCount={drawState.pointCount}
@@ -176,7 +206,7 @@ export function ZoningPage() {
                           <select disabled={locked} value={drawState.zoneType}
                             onChange={e => dispatchDraw({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
                             className={mapSelectCls}>
-                            {ZONE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                            {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
                           </select>
                         </div>
                       )
@@ -200,7 +230,7 @@ export function ZoningPage() {
                           <select disabled={locked} value={uploadState.zoneType}
                             onChange={e => dispatchUpload({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
                             className={mapSelectCls}>
-                            {ZONE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                            {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
                           </select>
                         </div>
                       )
@@ -215,27 +245,22 @@ export function ZoningPage() {
             <div className="pointer-events-auto self-center flex flex-col gap-0.5 rounded-xl bg-black/65 backdrop-blur-md shadow-2xl p-1.5 border border-white/10">
               {PANEL_BUTTONS.map((btn, i) => {
                 const Icon     = btn.icon
-                const isOcr    = btn.id === 'ocr'
-                const isActive = !isOcr && activePanel === btn.id
+                const isActive = activePanel === btn.id
                 return (
                   <div key={btn.id}>
                     {i > 0 && <Separator className="my-0.5 bg-white/10" />}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" aria-label={btn.label}
-                          disabled={isOcr}
-                          onClick={() => !isOcr && handleTogglePanel(btn.id as ActivePanel)}
+                          onClick={() => handleTogglePanel(btn.id)}
                           className={cn(
                             'size-9 rounded-lg transition-all hover:bg-white/15 text-white/60 hover:text-white',
-                            isOcr   && 'text-white/30 disabled:pointer-events-auto cursor-not-allowed',
                             isActive && 'bg-white/20 text-white ring-1 ring-white/30',
                           )}>
                           <Icon className="size-5" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="left" sideOffset={8}>
-                        {isOcr ? 'OCR + Georeferencing — coming soon' : btn.label}
-                      </TooltipContent>
+                      <TooltipContent side="left" sideOffset={8}>{btn.label}</TooltipContent>
                     </Tooltip>
                   </div>
                 )

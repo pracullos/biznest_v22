@@ -20,15 +20,23 @@ import {
   hazardDrawReducer,
   HAZARD_DRAW_INITIAL,
   type HazardType,
-  type HazardScenario,
 } from '@/reducer/hazard-draw.reducer'
 import {
   hazardUploadReducer,
   HAZARD_UPLOAD_INITIAL,
 } from '@/reducer/hazard-upload.reducer'
+import {
+  HAZARD_SCENARIO_PRESETS,
+  HAZARD_TYPE_LABELS,
+  SCENARIO_LABELS,
+  getDefaultScenario,
+} from '@/config/hazard.config'
 
-const HAZARD_TYPES: HazardType[]     = ['flood', 'landslide', 'storm_surge', 'debris_flow', 'faultline']
-const SCENARIOS:    HazardScenario[] = ['5yr', '25yr', '100yr', 'ssa1', 'ssa2', 'ssa3', 'ssa4']
+const HAZARD_TYPES: HazardType[] = ['flood', 'landslide', 'storm_surge', 'debris_flow', 'faultline']
+
+const inputCls =
+  'w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs ' +
+  'focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 placeholder:text-muted-foreground'
 
 type ActivePanel = 'draw' | 'upload' | null
 
@@ -60,13 +68,8 @@ export function HazardPage() {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
 
   // ── Draw with callback — no bridge effect needed ──────────────────────────
-  const draw = useDrawPolygon(engine, (geometry, pointCount, mode) => {
-    if (mode === 'draw_freehand') {
-      dispatchDraw({ type: 'FREEHAND_COMPLETE', geometry, pointCount })
-      void saveHazardGeometry(geometry)
-    } else {
-      dispatchDraw({ type: 'SHAPE_DRAWN', geometry, pointCount })
-    }
+  const draw = useDrawPolygon(engine, (geometry, pointCount) => {
+    dispatchDraw({ type: 'SHAPE_DRAWN', geometry, pointCount })
   })
 
   // ── City boundary ─────────────────────────────────────────────────────────
@@ -100,9 +103,10 @@ export function HazardPage() {
   }
 
   async function handleDrawSave() {
-    if (!drawState.geometry || !cityId) return
+    const geometry = draw.getLatestGeometry() ?? drawState.geometry
+    if (!geometry || !cityId) return
     dispatchDraw({ type: 'SAVE_START' })
-    await saveHazardGeometry(drawState.geometry)
+    await saveHazardGeometry(geometry)
   }
 
   async function handleUploadSave() {
@@ -194,24 +198,46 @@ export function HazardPage() {
                   >
                     {(() => {
                       const locked = drawState.phase === 'drawing' || drawState.phase === 'saving'
+                      const presets = HAZARD_SCENARIO_PRESETS[drawState.hazardType]
+                      const isCustom = presets !== null && drawState.scenario !== null && !presets.includes(drawState.scenario)
                       return (
                         <>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Hazard Type</label>
                             <select disabled={locked} value={drawState.hazardType}
-                              onChange={e => dispatchDraw({ type: 'SET_HAZARD_TYPE', hazardType: e.target.value as HazardType })}
+                              onChange={e => {
+                                const ht = e.target.value as HazardType
+                                dispatchDraw({ type: 'SET_HAZARD_TYPE', hazardType: ht })
+                                dispatchDraw({ type: 'SET_SCENARIO', scenario: getDefaultScenario(ht) })
+                              }}
                               className={mapSelectCls}>
-                              {HAZARD_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+                              {HAZARD_TYPES.map(t => <option key={t} value={t}>{HAZARD_TYPE_LABELS[t]}</option>)}
                             </select>
                           </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario</label>
-                            <select disabled={locked} value={drawState.scenario}
-                              onChange={e => dispatchDraw({ type: 'SET_SCENARIO', scenario: e.target.value as HazardScenario })}
-                              className={mapSelectCls}>
-                              {SCENARIOS.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
+                          {presets !== null && (
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario</label>
+                              <select disabled={locked}
+                                value={isCustom ? '__other__' : (drawState.scenario ?? presets[0])}
+                                onChange={e => {
+                                  if (e.target.value === '__other__') {
+                                    dispatchDraw({ type: 'SET_SCENARIO', scenario: '' })
+                                  } else {
+                                    dispatchDraw({ type: 'SET_SCENARIO', scenario: e.target.value })
+                                  }
+                                }}
+                                className={mapSelectCls}>
+                                {presets.map(s => <option key={s} value={s}>{SCENARIO_LABELS[s] ?? s}</option>)}
+                                <option value="__other__">Other…</option>
+                              </select>
+                              {isCustom && (
+                                <input type="text" disabled={locked} placeholder="e.g. 50yr"
+                                  value={drawState.scenario ?? ''}
+                                  onChange={e => dispatchDraw({ type: 'SET_SCENARIO', scenario: e.target.value || null })}
+                                  className={inputCls} />
+                              )}
+                            </div>
+                          )}
                         </>
                       )
                     })()}
@@ -228,24 +254,46 @@ export function HazardPage() {
                   >
                     {(() => {
                       const locked = uploadState.phase === 'saving'
+                      const presets = HAZARD_SCENARIO_PRESETS[uploadState.hazardType]
+                      const isCustom = presets !== null && uploadState.scenario !== null && !presets.includes(uploadState.scenario)
                       return (
                         <>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Hazard Type</label>
                             <select disabled={locked} value={uploadState.hazardType}
-                              onChange={e => dispatchUpload({ type: 'SET_HAZARD_TYPE', hazardType: e.target.value as HazardType })}
+                              onChange={e => {
+                                const ht = e.target.value as HazardType
+                                dispatchUpload({ type: 'SET_HAZARD_TYPE', hazardType: ht })
+                                dispatchUpload({ type: 'SET_SCENARIO', scenario: getDefaultScenario(ht) })
+                              }}
                               className={mapSelectCls}>
-                              {HAZARD_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+                              {HAZARD_TYPES.map(t => <option key={t} value={t}>{HAZARD_TYPE_LABELS[t]}</option>)}
                             </select>
                           </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario</label>
-                            <select disabled={locked} value={uploadState.scenario}
-                              onChange={e => dispatchUpload({ type: 'SET_SCENARIO', scenario: e.target.value as HazardScenario })}
-                              className={mapSelectCls}>
-                              {SCENARIOS.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
+                          {presets !== null && (
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario</label>
+                              <select disabled={locked}
+                                value={isCustom ? '__other__' : (uploadState.scenario ?? presets[0])}
+                                onChange={e => {
+                                  if (e.target.value === '__other__') {
+                                    dispatchUpload({ type: 'SET_SCENARIO', scenario: '' })
+                                  } else {
+                                    dispatchUpload({ type: 'SET_SCENARIO', scenario: e.target.value })
+                                  }
+                                }}
+                                className={mapSelectCls}>
+                                {presets.map(s => <option key={s} value={s}>{SCENARIO_LABELS[s] ?? s}</option>)}
+                                <option value="__other__">Other…</option>
+                              </select>
+                              {isCustom && (
+                                <input type="text" disabled={locked} placeholder="e.g. 50yr"
+                                  value={uploadState.scenario ?? ''}
+                                  onChange={e => dispatchUpload({ type: 'SET_SCENARIO', scenario: e.target.value || null })}
+                                  className={inputCls} />
+                              )}
+                            </div>
+                          )}
                         </>
                       )
                     })()}

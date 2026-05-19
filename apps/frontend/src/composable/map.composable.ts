@@ -136,22 +136,20 @@ const MAPLIBRE_DRAW_STYLES: any[] = [
 export type DrawMode = 'draw_polygon' | 'draw_freehand'
 
 export interface UseDrawPolygonResult {
-  isActive:      boolean
-  activeMode:    DrawMode | null
-  drawnGeometry: Polygon | null
-  pointCount:    number
-  activate:      (mode: DrawMode) => Promise<void>
-  deactivate:    () => void
-  clearDrawn:    () => void
+  isActive:          boolean
+  activeMode:        DrawMode | null
+  drawnGeometry:     Polygon | null
+  pointCount:        number
+  activate:          (mode: DrawMode) => Promise<void>
+  deactivate:        () => void
+  clearDrawn:        () => void
+  /** Read the current polygon from the draw control (reflects vertex edits made after drawing). */
+  getLatestGeometry: () => Polygon | null
 }
-
-const PREVIEW_SOURCE = '__draw-preview'
-const PREVIEW_FILL   = '__draw-preview-fill'
-const PREVIEW_LINE   = '__draw-preview-line'
 
 export function useDrawPolygon(
   engine: MapEngine | null,
-  onComplete?: (geometry: Polygon, pointCount: number, mode: DrawMode) => void,
+  onComplete?: (geometry: Polygon, pointCount: number) => void,
 ): UseDrawPolygonResult {
   const drawRef       = useRef<InstanceType<typeof MapboxDraw> | null>(null)
   const cleanupRef    = useRef<(() => void) | null>(null)
@@ -163,31 +161,6 @@ export function useDrawPolygon(
   const [drawnGeometry, setDrawnGeometry] = useState<Polygon | null>(null)
   const [pointCount,    setPointCount]    = useState(0)
 
-  const clearPreview = useCallback(() => {
-    if (!engine) return
-    engine.removeLayer(PREVIEW_FILL)
-    engine.removeLayer(PREVIEW_LINE)
-    engine.removeSource(PREVIEW_SOURCE)
-  }, [engine])
-
-  const addPreview = useCallback((poly: Polygon) => {
-    if (!engine) return
-    clearPreview()
-    engine.addGeoJsonSource(PREVIEW_SOURCE, { type: 'Feature', geometry: poly, properties: {} })
-    engine.addLayer({
-      id:   PREVIEW_FILL,
-      type: 'fill',
-      source: PREVIEW_SOURCE,
-      paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.25 },
-    })
-    engine.addLayer({
-      id:   PREVIEW_LINE,
-      type: 'line',
-      source: PREVIEW_SOURCE,
-      paint: { 'line-color': '#3b82f6', 'line-width': 2.5, 'line-opacity': 0.9 },
-    })
-  }, [engine, clearPreview])
-
   const deactivate = useCallback(() => {
     if (!engine) return
     cleanupRef.current?.()
@@ -196,17 +169,29 @@ export function useDrawPolygon(
       try { engine.instance.removeControl(drawRef.current as unknown as IControl) } catch { /* already removed */ }
       drawRef.current = null
     }
-    clearPreview()
     setIsActive(false)
     setActiveMode(null)
-  }, [engine, clearPreview])
+  }, [engine])
 
   const clearDrawn = useCallback(() => {
     setDrawnGeometry(null)
     setPointCount(0)
-    clearPreview()
     drawRef.current?.deleteAll()
-  }, [clearPreview])
+  }, [])
+
+  const getLatestGeometry = useCallback((): Polygon | null => {
+    const features = drawRef.current?.getAll().features ?? []
+    if (!features.length) return null
+    const geom = features[features.length - 1].geometry
+    if (!geom) return null
+    if (geom.type === 'Polygon') return geom as Polygon
+    if (geom.type === 'MultiPolygon') {
+      const outerRings = (geom as MultiPolygon).coordinates.map(p => p[0])
+      const largest = outerRings.reduce((a, b) => (b.length > a.length ? b : a))
+      return { type: 'Polygon', coordinates: [largest] }
+    }
+    return null
+  }, [])
 
   const activate = useCallback(async (mode: DrawMode) => {
     if (!engine) return
@@ -258,11 +243,18 @@ export function useDrawPolygon(
       const poly: Polygon = simplifiedPoly.coordinates[0].length >= 4 ? simplifiedPoly : raw
 
       processed.done = true
-      draw.deleteAll()
+
+      // Keep feature in MapboxDraw and enter direct_select so the user can
+      // drag vertices to edit the shape before saving.
+      try {
+        draw.changeMode('direct_select', { featureId: String(feature.id ?? '') })
+      } catch {
+        draw.changeMode('simple_select' as string)
+      }
+
       setDrawnGeometry(poly)
       setPointCount(poly.coordinates[0].length)
-      addPreview(poly)
-      onCompleteRef.current?.(poly, poly.coordinates[0].length, mode)
+      onCompleteRef.current?.(poly, poly.coordinates[0].length)
     }
 
     // draw.create fires for click-to-place polygon mode.
@@ -288,11 +280,11 @@ export function useDrawPolygon(
     drawRef.current = draw
     setIsActive(true)
     setActiveMode(mode)
-  }, [engine, deactivate, addPreview])
+  }, [engine, deactivate])
 
   useEffect(() => () => deactivate(), [deactivate])
 
-  return { isActive, activeMode, drawnGeometry, pointCount, activate, deactivate, clearDrawn }
+  return { isActive, activeMode, drawnGeometry, pointCount, activate, deactivate, clearDrawn, getLatestGeometry }
 }
 
 // ── useZoningPanel ────────────────────────────────────────────────────────────

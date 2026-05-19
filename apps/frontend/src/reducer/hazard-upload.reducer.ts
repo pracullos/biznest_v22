@@ -1,12 +1,12 @@
 import type { Polygon } from 'geojson'
-import type { HazardType, HazardScenario } from './hazard-draw.reducer'
+import type { HazardType } from './hazard-draw.reducer'
 
 export type HazardUploadPhase = 'idle' | 'ready' | 'saving' | 'saved' | 'error'
 
 export interface HazardUploadState {
   phase:      HazardUploadPhase
   hazardType: HazardType
-  scenario:   HazardScenario
+  scenario:   string | null
   severity:   number
   fileName:   string | null
   geometry:   Polygon | null
@@ -17,7 +17,7 @@ export type HazardUploadAction =
   | { type: 'SET_FILE';        fileName: string; geometry: Polygon }
   | { type: 'CLEAR_FILE' }
   | { type: 'SET_HAZARD_TYPE'; hazardType: HazardType }
-  | { type: 'SET_SCENARIO';    scenario:   HazardScenario }
+  | { type: 'SET_SCENARIO';    scenario:   string | null }
   | { type: 'SET_SEVERITY';    severity:   number }
   | { type: 'SAVE_START' }
   | { type: 'SAVE_SUCCESS' }
