@@ -5,9 +5,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface GetHazardGeometryCitiesCityIdHazardsGeometryGetParams {
-  /** flood | landslide | storm_surge | debris_flow | faultline */
-  hazard_type?: string | null;
-  /** 5yr | 25yr | 100yr | ssa1-ssa4 */
-  scenario?: string | null;
-}
+export type GetHazardGeometryCitiesCityIdHazardsGeometryGetParams = {
+/**
+ * flood | landslide | storm_surge | debris_flow | faultline
+ */
+hazard_type?: string | null;
+/**
+ * 5yr | 25yr | 100yr | ssa1-ssa4
+ */
+scenario?: string | null;
+};

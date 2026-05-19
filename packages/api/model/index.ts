@@ -82,6 +82,7 @@ export * from './zoneType';
 export * from './zoningAreaCreate';
 export * from './zoningAreaCreateGeometry';
 export * from './zoningAreaGeometryResponse';
+export * from './zoningAreaGeometryResponseGeometry';
 export * from './zoningAreaResponse';
 export * from './zoningAreaResponseGeometry';
 export * from './zoningAreaSummary';

@@ -68,22 +68,12 @@ class ZoningAreaSummary(BaseModel):
 
     id: UUID
     city_id: UUID
-    zone_type: ZoneType | None = None
+    zone_type: str | None = None  # str, not ZoneType — OCR zones may have hex-color labels
     color_hex: str | None = None
     severity: int | None = None
     pmtile_url: str | None = None
     created_by: UUID
     created_at: datetime
-
-    @field_validator("zone_type", mode="before")
-    @classmethod
-    def normalize_zone_type_summary(cls, v: Any) -> ZoneType | None:
-        if v is None:
-            return None
-        try:
-            return ZoneType(str(v).strip().lower())
-        except ValueError:
-            return None
 
 
 class ZoningAreaGeometryResponse(BaseModel):
@@ -113,24 +103,9 @@ class ZoningAreaResponse(BaseModel):
     id: Annotated[UUID, Field(description="Zoning Area Id")]
     city_id: Annotated[UUID, Field(description="City Id")]
     zone_type: Annotated[
-        ZoneType | None,
-        Field(
-            default=None,
-            description="Zone type for this zone",
-            examples=["residential", "commercial", "industrial", "agriculture"],
-        )
+        str | None,  # str, not ZoneType — OCR zones may have hex-color labels
+        Field(default=None, description="Zone type for this zone")
     ]
-
-    @field_validator("zone_type", mode="before")
-    @classmethod
-    def normalize_zone_type(cls, v: Any) -> ZoneType | None:
-        if v is None:
-            return None
-        normalized = str(v).strip().lower()
-        try:
-            return ZoneType(normalized)
-        except ValueError:
-            return None
     color_hex: Annotated[str | None, Field(description="Hex color code for this zone, e.g. #RRGGBB")]
     severity: Annotated[int | None, Field(default=None, description="Severity classification 1–5")]
     geometry: Annotated[
