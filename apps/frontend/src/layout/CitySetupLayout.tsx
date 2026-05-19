@@ -1,5 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthContext } from "@/context/auth.context";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
@@ -17,6 +18,13 @@ export function CitySetupLayout() {
   const userInitials = user
     ? (user.full_name ?? user.email).slice(0, 2).toUpperCase()
     : "??";
+
+  const handleSignOut = () => {
+    toast.success("Signed out successfully!", { position: "top-center" });
+    setTimeout(() => {
+      void signOut();
+    }, 800);
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -46,11 +54,7 @@ export function CitySetupLayout() {
               </span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => void signOut()}
-                  >
+                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
                     <LogOut className="h-8 w-8" />
                   </Button>
                 </TooltipTrigger>
