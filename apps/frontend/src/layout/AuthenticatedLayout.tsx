@@ -91,7 +91,7 @@ function CitySwitcher() {
     enabled: cityIds.length > 0,
   });
 
-  const myCities: CityResponse[] = allCities.filter((c) =>
+  const myCities: CityResponse[] = allCities.filter((c: CityResponse) =>
     cityIds.includes(c.id),
   );
 

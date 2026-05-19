@@ -1,61 +1,72 @@
-import { Outlet } from '@tanstack/react-router'
-import { Map, LogOut } from 'lucide-react'
-import { useAuthContext } from '@/context/auth.context'
-import { Button } from '@/components/ui/button'
+import { Link, Outlet } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { useAuthContext } from "@/context/auth.context";
+import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function CitySetupLayout() {
-  const { state, signOut } = useAuthContext()
+  const { state, signOut } = useAuthContext();
 
-  const user = state.state === 'AUTHENTICATED' ? state.user : null
-  const userInitials = user ? (user.full_name ?? user.email).slice(0, 2).toUpperCase() : '??'
+  const user = state.state === "AUTHENTICATED" ? state.user : null;
+  const userInitials = user
+    ? (user.full_name ?? user.email).slice(0, 2).toUpperCase()
+    : "??";
+
+  const handleSignOut = () => {
+    toast.success("Signed out successfully!", { position: "top-center" });
+    setTimeout(() => {
+      void signOut();
+    }, 800);
+  };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4 sm:px-6">
-        <div className="flex items-center gap-2 font-semibold">
-          <Map className="size-4 text-primary" />
-          <span>BizNest</span>
-        </div>
+    <TooltipProvider delayDuration={0}>
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4 sm:px-6">
+          <div className="flex items-center gap-2 font-semibold">
+            <img
+              src="/images/logo.png"
+              alt="BizNest logo"
+              className="size-8 shrink-0"
+            />
+            <span>BizNest</span>
+          </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 px-2">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={"/dashboard" as never}>Dashboard</Link>
+            </Button>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <ModeToggle />
+            <div className="mx-1 h-4 w-px bg-border" />
+            <div className="flex items-center gap-2 pl-1">
               <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                 {userInitials}
               </div>
-              <span className="hidden sm:block text-sm max-w-[140px] truncate">
+              <span className="hidden sm:block text-sm max-w-[180px] truncate">
                 {user?.full_name ?? user?.email}
               </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel className="font-normal">
-              <p className="text-sm font-medium truncate">{user?.full_name ?? user?.email}</p>
-              {user?.email && user?.full_name && (
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => void signOut()}
-              className="gap-2 text-destructive focus:text-destructive"
-            >
-              <LogOut className="size-3.5" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </header>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                    <LogOut className="h-8 w-8" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Sign out</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+        </header>
 
-      <Outlet />
-    </div>
-  )
+        <Outlet />
+      </div>
+    </TooltipProvider>
+  );
 }
