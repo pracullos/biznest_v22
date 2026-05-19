@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Map as MapIcon, MapPin, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -10,7 +10,7 @@ export function CitiesPage() {
     isLgu, isLoading, createCity,
     search, setPage,
     filtered, cities, totalPages, safePage, pageSlice,
-    openOnMap, handleSearch,
+    viewDetail, handleSearch,
   } = useCities()
 
   return (
@@ -66,10 +66,10 @@ export function CitiesPage() {
                 variant="ghost"
                 size="sm"
                 className="shrink-0 gap-1.5"
-                onClick={() => openOnMap(city)}
+                onClick={() => viewDetail(city)}
               >
-                <MapIcon className="size-3.5" />
-                View on Map
+                View Details
+                <ChevronRight className="size-3.5" />
               </Button>
             </div>
           ))}

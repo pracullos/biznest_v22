@@ -16,6 +16,7 @@ from schema.ZoningAreaDto import (
     ZoningProcessResponse,
 )
 from models.city import City
+from models.document import Document
 from models.zoning_area import ZoningArea
 from services import geo_processing_service as gps
 from services.coordinate_service import clip_to_city_boundary
@@ -90,9 +91,12 @@ def process_zoning_image(
     if len(payload.gcps) < 4:
         raise HTTPException(status_code=422, detail="At least 4 ground control points required")
 
-    # Load image from MinIO
+    # Resolve Document UUID → MinIO object key, then load image
+    document = db.query(Document).filter(Document.id == payload.file_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Uploaded file not found")
     try:
-        image_bytes, image_bgr = gps.load_image_from_minio(payload.file_id)
+        image_bytes, image_bgr = gps.load_image_from_minio(document.file_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

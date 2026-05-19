@@ -58,6 +58,10 @@ export function useCities() {
     void navigate({ to: '/map' as never })
   }
 
+  function viewDetail(city: CityResponse) {
+    void navigate({ to: '/cities/$cityId' as never, params: { cityId: city.id } as never })
+  }
+
   function handleSearch(value: string) {
     setSearch(value)
     setPage(1)
@@ -76,6 +80,7 @@ export function useCities() {
     safePage,
     pageSlice,
     openOnMap,
+    viewDetail,
     handleSearch,
   }
 }

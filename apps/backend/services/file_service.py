@@ -35,7 +35,8 @@ async def upload_file(file: UploadFile, owner: User, db: Session) -> DocumentUpl
     db.add(document)
     db.commit()
 
-    return DocumentUploadResponse(file_id=file_id, url=f"/files/{file_id}")
+    db.refresh(document)
+    return DocumentUploadResponse(file_id=str(document.id), url=f"/files/{file_id}")
 
 
 def download_file(file_id: str) -> StreamingResponse:
