@@ -4,7 +4,7 @@
  * BizNest Geo-Intelligence API
  * OpenAPI spec version: 0.1.0
  */
-import type { ZoningAreaResponseGeometry } from './zoningAreaResponseGeometry';
+import type { ZoningAreaGeometryResponseGeometry } from './zoningAreaGeometryResponseGeometry';
 
 /**
  * Geometry-only response — id, city_id, geometry. Enables separate caching from metadata.
@@ -12,5 +12,5 @@ import type { ZoningAreaResponseGeometry } from './zoningAreaResponseGeometry';
 export interface ZoningAreaGeometryResponse {
   id: string;
   city_id: string;
-  geometry?: ZoningAreaResponseGeometry;
+  geometry?: ZoningAreaGeometryResponseGeometry;
 }

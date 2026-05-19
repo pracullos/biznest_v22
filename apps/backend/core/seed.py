@@ -56,8 +56,7 @@ ROLES = {
         "alert:write",
         "analytics:view",
         "location:save",
-        "view:map",
-        "manage:logs",
+        "view:map"
     ],
     "admin": [
         "manage:city",

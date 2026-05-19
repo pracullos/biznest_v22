@@ -10,9 +10,17 @@ import { useZoningPanel } from '@/composable/map.composable'
 import { usePermission } from '@/hooks/use-permission'
 import { PERMISSION } from '@/config/permissions'
 
+const HEX_RE = /^#[0-9a-fA-F]{3,8}$/
+
+function zoneTypeLabel(type: string): string {
+  if (type === '(unlabelled)') return '(unlabelled)'
+  if (HEX_RE.test(type)) return 'Unlabelled (OCR)'
+  return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ')
+}
+
 export function ZoningPanel() {
   const { visibleZoningTypes, toggleZoningType, showZoning } = useMapContext()
-  const { pmtileUrl, zones, zoneTypes, isLoading } = useZoningPanel()
+  const { pmtileUrl, zones, zoneTypes, zoneColors, isLoading } = useZoningPanel()
   const canWrite = usePermission(PERMISSION.ZONING_WRITE)
   const navigate = useNavigate()
 
@@ -71,14 +79,25 @@ export function ZoningPanel() {
           </p>
 
           {zoneTypes.map(([type, count], i) => {
+            // PMTile feature zone_type is "" for DB null, or the actual string for others
             const filterKey = type === '(unlabelled)' ? '' : type
             const allFilterKeys = zoneTypes.map(([t]) => t === '(unlabelled)' ? '' : t)
             const isVisible = showZoning && (visibleZoningTypes === null || visibleZoningTypes.has(filterKey))
+            const swatchColor = HEX_RE.test(type) ? type : (zoneColors[type] ?? null)
+            const label = zoneTypeLabel(type)
             return (
               <div key={type}>
                 {i > 0 && <Separator className="my-0 opacity-30" />}
                 <div className="flex items-center gap-2 py-1.5">
-                  <span className={cn('text-xs truncate flex-1', !isVisible && 'opacity-40 line-through')}>{type}</span>
+                  {swatchColor && (
+                    <div
+                      className="size-2.5 rounded-sm shrink-0 border border-white/10"
+                      style={{ background: swatchColor }}
+                    />
+                  )}
+                  <span className={cn('text-xs truncate flex-1', !isVisible && 'opacity-40 line-through')}>
+                    {label}
+                  </span>
                   <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 mr-1">{count}</span>
                   <Switch
                     checked={isVisible}

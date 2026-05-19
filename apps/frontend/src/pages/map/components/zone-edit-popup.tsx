@@ -13,6 +13,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { ZONE_TYPE_LABELS } from '@/config/hazard.config'
+
+const PRESET_ZONE_TYPES = Object.keys(ZONE_TYPE_LABELS)
+const selectCls =
+  'w-full rounded-md border border-input bg-background px-2 py-1 text-xs h-7 ' +
+  'focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50'
 
 type View = 'edit' | 'confirm-delete'
 
@@ -21,7 +27,8 @@ export function ZoneEditPopup() {
   const { selectedCity } = useCityContext()
   const queryClient = useQueryClient()
 
-  const [label, setLabel] = useState('')
+  const [label,    setLabel]    = useState('')
+  const [isCustom, setIsCustom] = useState(false)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<View>('edit')
@@ -30,7 +37,10 @@ export function ZoneEditPopup() {
   // Reset state when a new zone is selected
   useEffect(() => {
     if (!clickedZone) { setError(null); return }
-    setLabel(clickedZone.zoneType)
+    const type = clickedZone.zoneType
+    const custom = !!type && !PRESET_ZONE_TYPES.includes(type)
+    setLabel(type)
+    setIsCustom(custom)
     setError(null)
     setView('edit')
     setTimeout(() => inputRef.current?.select(), 50)
@@ -133,19 +143,43 @@ export function ZoneEditPopup() {
 
         {view === 'edit' ? (
           <>
-            {/* Label input */}
-            <Input
-              ref={inputRef}
-              value={label}
-              onChange={e => setLabel(e.target.value)}
-              placeholder="e.g. Agricultural"
-              className="h-7 text-xs"
+            {/* Zone type selector */}
+            <select
+              className={selectCls}
               disabled={isBusy}
-              onKeyDown={e => {
-                if (e.key === 'Enter') void handleSave()
-                if (e.key === 'Escape') setClickedZone(null)
+              value={isCustom ? '__other__' : (label ?? '')}
+              onChange={e => {
+                if (e.target.value === '__other__') {
+                  setIsCustom(true)
+                  setLabel('')
+                  setTimeout(() => inputRef.current?.focus(), 30)
+                } else {
+                  setIsCustom(false)
+                  setLabel(e.target.value)
+                }
               }}
-            />
+            >
+              {PRESET_ZONE_TYPES.map(t => (
+                <option key={t} value={t}>{ZONE_TYPE_LABELS[t]}</option>
+              ))}
+              <option value="__other__">Other…</option>
+            </select>
+
+            {/* Custom label input shown when "Other" selected */}
+            {isCustom && (
+              <Input
+                ref={inputRef}
+                value={label}
+                onChange={e => setLabel(e.target.value)}
+                placeholder="Enter custom zone type"
+                className="h-7 text-xs"
+                disabled={isBusy}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') void handleSave()
+                  if (e.key === 'Escape') setClickedZone(null)
+                }}
+              />
+            )}
 
             {/* Status */}
             {regenerating && (
@@ -161,7 +195,7 @@ export function ZoneEditPopup() {
                 size="sm"
                 className="flex-1 h-7 text-xs gap-1"
                 onClick={handleSave}
-                disabled={isBusy || !label.trim() || label.trim() === clickedZone.zoneType}
+                disabled={isBusy || !label.trim()}
               >
                 {patching || regenerating
                   ? <Loader2 className="size-3 animate-spin" />

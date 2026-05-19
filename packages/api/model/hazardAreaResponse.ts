@@ -16,7 +16,7 @@ export interface HazardAreaResponse {
   scenario: string | null;
   severity: number | null;
   pmtile_url: string | null;
-  geometry?: HazardAreaResponseGeometry;
+  geometry: HazardAreaResponseGeometry;
   created_by: string | null;
   created_at: string;
 }
