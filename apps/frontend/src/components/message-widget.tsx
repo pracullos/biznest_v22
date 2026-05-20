@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useCityContext } from '@/context/city.context'
+import { useIsRole } from '@/hooks/use-permission'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,7 +67,10 @@ function Bubble({ msg }: { msg: ChatMessage }) {
 // ── Main widget ───────────────────────────────────────────────────────────────
 
 export function MessageWidget() {
+  const isInvestor = useIsRole('investor')
   const { selectedCity } = useCityContext()
+
+  if (!isInvestor) return null
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')

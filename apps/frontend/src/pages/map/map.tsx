@@ -4,11 +4,14 @@ import { HazardControls } from './components/hazard-controls'
 import { ZoneEditPopup } from './components/zone-edit-popup'
 import { useMapContext } from '@/context/map.context'
 import { useCityContext } from '@/context/city.context'
+import { usePermission } from '@/hooks/use-permission'
+import { PERMISSION } from '@/config/permissions'
 import type { BoundaryGeometry } from '@/engine/map.engine'
 
 export function MapPage() {
   const { engine, refreshHazardLayers } = useMapContext()
   const { cityBoundary }               = useCityContext()
+  const canEditZones                   = usePermission(PERMISSION.ZONING_WRITE)
 
   const prevBoundaryRef = useRef<BoundaryGeometry | null>(null)
 
@@ -30,7 +33,7 @@ export function MapPage() {
   return (
     <Map className="size-full">
       <HazardControls />
-      <ZoneEditPopup />
+      {canEditZones && <ZoneEditPopup />}
     </Map>
   )
 }

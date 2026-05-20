@@ -23,7 +23,9 @@ import type {
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
-  HTTPValidationError
+  HTTPValidationError,
+  LocationAnalyzeRequest,
+  LocationAnalyzeResponse
 } from '../../model';
 
 
@@ -94,4 +96,71 @@ export const useAnalyzeCityCitiesCityIdAnalyzePost = <TError = AxiosError<HTTPVa
         TContext
       > => {
       return useMutation(getAnalyzeCityCitiesCityIdAnalyzePostMutationOptions(options));
+    }
+    /**
+ * Spatial business analysis for a clicked point or drawn polygon.
+
+Accepts a GeoJSON geometry (Point or Polygon) and optional question.
+Aggregates zoning, hazard, and establishment data for the area, fetches
+Philippine Standard classifications (PSIC, PSOC, PCOICOP, etc.) from the
+PSA API, then returns an AI-generated business suitability analysis.
+ * @summary Analyze Location
+ */
+export const analyzeLocationCitiesCityIdAnalyzeLocationPost = (
+    cityId: string,
+    locationAnalyzeRequest: LocationAnalyzeRequest, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<LocationAnalyzeResponse>> => {
+
+
+    return axios.default.post(
+      `/cities/${cityId}/analyze/location`,
+      locationAnalyzeRequest,options
+    );
+  }
+
+
+
+export const getAnalyzeLocationCitiesCityIdAnalyzeLocationPostMutationOptions = <TError = AxiosError<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeLocationCitiesCityIdAnalyzeLocationPost>>, TError,{cityId: string;data: LocationAnalyzeRequest}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeLocationCitiesCityIdAnalyzeLocationPost>>, TError,{cityId: string;data: LocationAnalyzeRequest}, TContext> => {
+
+const mutationKey = ['analyzeLocationCitiesCityIdAnalyzeLocationPost'];
+const {mutation: mutationOptions, axios: axiosOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, axios: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeLocationCitiesCityIdAnalyzeLocationPost>>, {cityId: string;data: LocationAnalyzeRequest}> = (props) => {
+          const {cityId,data} = props ?? {};
+
+          return  analyzeLocationCitiesCityIdAnalyzeLocationPost(cityId,data,axiosOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeLocationCitiesCityIdAnalyzeLocationPostMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeLocationCitiesCityIdAnalyzeLocationPost>>>
+    export type AnalyzeLocationCitiesCityIdAnalyzeLocationPostMutationBody = LocationAnalyzeRequest
+    export type AnalyzeLocationCitiesCityIdAnalyzeLocationPostMutationError = AxiosError<HTTPValidationError>
+
+    /**
+ * @summary Analyze Location
+ */
+export const useAnalyzeLocationCitiesCityIdAnalyzeLocationPost = <TError = AxiosError<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeLocationCitiesCityIdAnalyzeLocationPost>>, TError,{cityId: string;data: LocationAnalyzeRequest}, TContext>, axios?: AxiosRequestConfig}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeLocationCitiesCityIdAnalyzeLocationPost>>,
+        TError,
+        {cityId: string;data: LocationAnalyzeRequest},
+        TContext
+      > => {
+      return useMutation(getAnalyzeLocationCitiesCityIdAnalyzeLocationPostMutationOptions(options));
     }

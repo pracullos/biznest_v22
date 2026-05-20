@@ -22,6 +22,7 @@ export type MapLayerAction =
   | { type: 'SET_ZONING_TILE'; tile: ZoningTile | null }
   | { type: 'SET_SHOW_ZONING'; value: boolean }
   | { type: 'TOGGLE_ZONING_TYPE'; zoneType: string; allTypes: string[] }
+  | { type: 'TOGGLE_ZONING_TYPE_GROUP'; zoneTypes: string[]; allTypes: string[] }
   | { type: 'RESET_ZONING_TYPES' }
   | { type: 'CLEAR_CITY' }
 
@@ -105,6 +106,39 @@ export function mapLayerReducer(state: MapLayerState, action: MapLayerAction): M
         return { ...state, showZoning: false, visibleZoningTypes: null }
       }
       return { ...state, visibleZoningTypes: prev }
+    }
+
+    case 'TOGGLE_ZONING_TYPE_GROUP': {
+      const allSet  = new Set(action.allTypes)
+      const groupSet = new Set(action.zoneTypes)
+
+      if (!state.showZoning) {
+        // Layer was hidden → show it with ONLY this group visible
+        return { ...state, showZoning: true, visibleZoningTypes: new Set(action.zoneTypes) }
+      }
+
+      const prev = state.visibleZoningTypes === null
+        ? new Set(action.allTypes)
+        : new Set(state.visibleZoningTypes)
+
+      // Group is "on" if any of its types are currently visible
+      const groupVisible = action.zoneTypes.some(t => prev.has(t))
+
+      if (groupVisible) {
+        // Hide all group types
+        action.zoneTypes.forEach(t => prev.delete(t))
+      } else {
+        // Show all group types
+        action.zoneTypes.forEach(t => prev.add(t))
+      }
+
+      if (prev.size === 0) return { ...state, showZoning: false, visibleZoningTypes: null }
+      if (prev.size === allSet.size && [...prev].every(t => allSet.has(t))) {
+        return { ...state, visibleZoningTypes: null }
+      }
+      // Remove any group keys that aren't in allTypes (shouldn't happen but guard it)
+      const next = new Set([...prev].filter(t => allSet.has(t) || groupSet.has(t)))
+      return { ...state, visibleZoningTypes: next }
     }
 
     case 'RESET_ZONING_TYPES':
