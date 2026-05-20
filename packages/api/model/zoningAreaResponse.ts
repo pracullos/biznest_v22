@@ -4,7 +4,6 @@
  * BizNest Geo-Intelligence API
  * OpenAPI spec version: 0.1.0
  */
-import type { ZoneType } from './zoneType';
 import type { ZoningAreaResponseGeometry } from './zoningAreaResponseGeometry';
 
 export interface ZoningAreaResponse {
@@ -13,7 +12,7 @@ export interface ZoningAreaResponse {
   /** City Id */
   city_id: string;
   /** Zone type for this zone */
-  zone_type?: ZoneType | null;
+  zone_type?: string | null;
   /** Hex color code for this zone, e.g. #RRGGBB */
   color_hex: string | null;
   /** Severity classification 1–5 */

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Minus } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
@@ -7,10 +7,8 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { useMapContext } from '@/context/map.context'
-import { useCityContext } from '@/context/city.context'
 import { usePermission } from '@/hooks/use-permission'
 import { PERMISSION } from '@/config/permissions'
-import { useListHazardPmtilesCitiesCityIdHazardsPmtilesGet } from '@networking/api/generated/hazards/hazards'
 
 const HAZARD_COLORS: Record<string, string> = {
   flood:       'data-checked:bg-blue-500',
@@ -47,17 +45,19 @@ function formatScenarioLabel(scenario: string | null): string {
 const SWITCH_BASE = 'shrink-0 data-unchecked:bg-muted-foreground/20'
 
 export function HazardPanel() {
-  const { visibleHazardKeys, toggleHazard } = useMapContext()
-  const { selectedCity } = useCityContext()
+  const { visibleHazardKeys, toggleHazard, hazardLayers, refreshHazardLayers } = useMapContext()
   const canWrite = usePermission(PERMISSION.HAZARD_WRITE)
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  const { data, isLoading } = useListHazardPmtilesCitiesCityIdHazardsPmtilesGet(
-    selectedCity?.id ?? '',
-  )
+  // Sync engine layers with latest DB state each time the panel opens.
+  // Catches PMTiles added after the initial city-load fetch.
+  useEffect(() => {
+    void refreshHazardLayers()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const tiles = data?.data ?? []
+  const tiles = hazardLayers
 
   const typeOrder = [...new Set(tiles.map(t => t.hazard_type))]
   const groups = typeOrder.map(type => ({
@@ -72,14 +72,6 @@ export function HazardPanel() {
       else next.add(type)
       return next
     })
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center flex-1 text-xs text-muted-foreground py-8">
-        Loading…
-      </div>
-    )
   }
 
   if (groups.length === 0) {

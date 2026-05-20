@@ -4,21 +4,17 @@
  * BizNest Geo-Intelligence API
  * OpenAPI spec version: 0.1.0
  */
-import type { ZoneType } from './zoneType';
 
 /**
  * List/get response — geometry excluded (use pmtile_url for rendering).
  */
 export interface ZoningAreaSummary {
-  /** Zoning Area Id */
   id: string;
-  /** City Id */
   city_id: string;
-  zone_type?: ZoneType | null;
-  color_hex: string | null;
+  zone_type?: string | null;
+  color_hex?: string | null;
   severity?: number | null;
-  pmtile_url: string | null;
-  /** Created by user for this zone */
+  pmtile_url?: string | null;
   created_by: string;
   created_at: string;
 }

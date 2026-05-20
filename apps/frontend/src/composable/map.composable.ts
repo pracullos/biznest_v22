@@ -318,5 +318,12 @@ export function useZoningPanel() {
   }, {})
   const zoneTypes = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b))
 
-  return { pmtileUrl, zones, zoneTypes, isLoading }
+  // First color_hex seen per zone_type — used to show swatches for OCR zones
+  const zoneColors = zones.reduce<Record<string, string | null>>((acc, z) => {
+    const key = z.zone_type ?? '(unlabelled)'
+    if (!(key in acc)) acc[key] = z.color_hex ?? null
+    return acc
+  }, {})
+
+  return { pmtileUrl, zones, zoneTypes, zoneColors, isLoading }
 }

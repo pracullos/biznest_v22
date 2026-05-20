@@ -33,6 +33,8 @@ export interface MapData {
   visibleZoningTypes: Set<string> | null
   /** Toggle one zone_type. allTypes = full list of known types for this city. */
   toggleZoningType: (type: string, allTypes: string[]) => void
+  /** Toggle a group of zone_types atomically (e.g. all OCR hex-color types). */
+  toggleZoningTypeGroup: (types: string[], allTypes: string[]) => void
   /** Reset zone type filter to null (all visible). */
   resetZoningTypes: () => void
   /** Restore all hazard keys to visible (undo all individual hide toggles). */
@@ -63,6 +65,7 @@ export const MapContext = createContext<MapData>({
   setShowZoning: () => {},
   visibleZoningTypes: null,
   toggleZoningType: () => {},
+  toggleZoningTypeGroup: () => {},
   resetZoningTypes: () => {},
   resetHazardVisibility: () => {},
   clickedZone: null,

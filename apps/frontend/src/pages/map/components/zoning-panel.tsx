@@ -10,9 +10,17 @@ import { useZoningPanel } from '@/composable/map.composable'
 import { usePermission } from '@/hooks/use-permission'
 import { PERMISSION } from '@/config/permissions'
 
+const HEX_RE = /^#[0-9a-fA-F]{3,8}$/
+
+function zoneTypeLabel(type: string): string {
+  if (type === '(unlabelled)') return '(unlabelled)'
+  if (HEX_RE.test(type)) return 'Unlabelled (OCR)'
+  return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ')
+}
+
 export function ZoningPanel() {
-  const { visibleZoningTypes, toggleZoningType, showZoning } = useMapContext()
-  const { pmtileUrl, zones, zoneTypes, isLoading } = useZoningPanel()
+  const { visibleZoningTypes, toggleZoningType, toggleZoningTypeGroup, showZoning } = useMapContext()
+  const { pmtileUrl, zones, zoneTypes, zoneColors, isLoading } = useZoningPanel()
   const canWrite = usePermission(PERMISSION.ZONING_WRITE)
   const navigate = useNavigate()
 
@@ -70,25 +78,65 @@ export function ZoningPanel() {
             {zones.length} zone{zones.length !== 1 ? 's' : ''} · {zoneTypes.length} type{zoneTypes.length !== 1 ? 's' : ''}
           </p>
 
-          {zoneTypes.map(([type, count], i) => {
-            const filterKey = type === '(unlabelled)' ? '' : type
+          {(() => {
+            // Split into named types and OCR hex-color types
+            const namedTypes = zoneTypes.filter(([t]) => !HEX_RE.test(t))
+            const ocrTypes   = zoneTypes.filter(([t]) => HEX_RE.test(t))
+            const ocrKeys    = ocrTypes.map(([t]) => t)
+            const ocrCount   = ocrTypes.reduce((s, [, n]) => s + n, 0)
             const allFilterKeys = zoneTypes.map(([t]) => t === '(unlabelled)' ? '' : t)
-            const isVisible = showZoning && (visibleZoningTypes === null || visibleZoningTypes.has(filterKey))
-            return (
-              <div key={type}>
-                {i > 0 && <Separator className="my-0 opacity-30" />}
-                <div className="flex items-center gap-2 py-1.5">
-                  <span className={cn('text-xs truncate flex-1', !isVisible && 'opacity-40 line-through')}>{type}</span>
-                  <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 mr-1">{count}</span>
-                  <Switch
-                    checked={isVisible}
-                    onCheckedChange={() => toggleZoningType(filterKey, allFilterKeys)}
-                    className="shrink-0 scale-75"
-                  />
+
+            const rows: Array<{ key: string; label: string; count: number; color: string | null; isGroup?: true; groupKeys?: string[] }> = [
+              ...namedTypes.map(([type, count]) => ({
+                key:   type === '(unlabelled)' ? '' : type,
+                label: zoneTypeLabel(type),
+                count,
+                color: zoneColors[type] ?? null,
+              })),
+              ...(ocrCount > 0 ? [{
+                key:       '__ocr__',
+                label:     'Unlabelled (OCR)',
+                count:     ocrCount,
+                color:     ocrKeys[0] ?? null,   // representative color swatch
+                isGroup:   true as const,
+                groupKeys: ocrKeys,
+              }] : []),
+            ]
+
+            return rows.map((row, i) => {
+              const isVisible = showZoning && (
+                row.isGroup
+                  ? (visibleZoningTypes === null || row.groupKeys!.some(k => visibleZoningTypes.has(k)))
+                  : (visibleZoningTypes === null || visibleZoningTypes.has(row.key))
+              )
+              return (
+                <div key={row.key}>
+                  {i > 0 && <Separator className="my-0 opacity-30" />}
+                  <div className="flex items-center gap-2 py-1.5">
+                    {row.color && (
+                      <div
+                        className="size-2.5 rounded-sm shrink-0 border border-white/10"
+                        style={{ background: row.color }}
+                      />
+                    )}
+                    <span className={cn('text-xs truncate flex-1', !isVisible && 'opacity-40 line-through')}>
+                      {row.label}
+                    </span>
+                    <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 mr-1">{row.count}</span>
+                    <Switch
+                      checked={isVisible}
+                      onCheckedChange={() =>
+                        row.isGroup
+                          ? toggleZoningTypeGroup(row.groupKeys!, allFilterKeys)
+                          : toggleZoningType(row.key, allFilterKeys)
+                      }
+                      className="shrink-0 scale-75"
+                    />
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
         </div>
       </ScrollArea>
     </div>

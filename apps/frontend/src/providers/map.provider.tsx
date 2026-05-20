@@ -186,8 +186,11 @@ export function MapProvider({ children }: PropsWithChildren) {
   const resetHazardVisibility = useCallback(() =>
     dispatchLayers({ type: 'RESET_HAZARD_VISIBILITY' }), [])
 
-  const toggleZoningType    = useCallback((zoneType: string, allTypes: string[]) =>
+  const toggleZoningType      = useCallback((zoneType: string, allTypes: string[]) =>
     dispatchLayers({ type: 'TOGGLE_ZONING_TYPE', zoneType, allTypes }), [])
+
+  const toggleZoningTypeGroup = useCallback((zoneTypes: string[], allTypes: string[]) =>
+    dispatchLayers({ type: 'TOGGLE_ZONING_TYPE_GROUP', zoneTypes, allTypes }), [])
 
   // ── Zone click handler ────────────────────────────────────────────────────
 
@@ -230,6 +233,7 @@ export function MapProvider({ children }: PropsWithChildren) {
       setShowZoning: (value) => dispatchLayers({ type: 'SET_SHOW_ZONING', value }),
       visibleZoningTypes,
       toggleZoningType,
+      toggleZoningTypeGroup,
       resetZoningTypes,
       resetHazardVisibility,
       clickedZone,
