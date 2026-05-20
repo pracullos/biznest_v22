@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Lock,
   MapPin,
   Search,
@@ -20,6 +18,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import type { CityResponse } from "@networking/api/model/cityResponse";
 import { useCitySetup } from "./composables/use-city-setup";
 import { CreateCityDialog } from "./components/create-city-dialog";
@@ -154,6 +161,43 @@ export function CitySetupPage() {
     setSearch(value);
     setPage(1);
   }
+
+  // Helper function to generate pagination items with ellipsis
+  const getPaginationItems = (currentPage: number, totalPages: number) => {
+    const items = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      // Show all pages
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(i);
+      }
+    } else {
+      // Always show first page
+      items.push(1);
+
+      // Calculate range around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      if (start > 2) {
+        items.push("...");
+      }
+
+      for (let i = start; i <= end; i++) {
+        items.push(i);
+      }
+
+      if (end < totalPages - 1) {
+        items.push("...");
+      }
+
+      // Always show last page
+      items.push(totalPages);
+    }
+
+    return items;
+  };
 
   return (
     <div className="flex flex-1 flex-col items-center justify-start px-4 py-6 bg-muted/20 min-h-screen">
@@ -307,30 +351,63 @@ export function CitySetupPage() {
 
                 {/* Pagination */}
                 {myTotalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-border/50">
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                      Page {safeMyPage} of {myTotalPages}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 rounded-full shadow-sm hover:bg-accent"
-                        disabled={safeMyPage <= 1}
-                        onClick={() => setMyPage((p) => p - 1)}
-                      >
-                        <ChevronLeft className="size-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 rounded-full shadow-sm hover:bg-accent"
-                        disabled={safeMyPage >= myTotalPages}
-                        onClick={() => setMyPage((p) => p + 1)}
-                      >
-                        <ChevronRight className="size-4" />
-                      </Button>
-                    </div>
+                  <div className="pt-4 mt-4 border-t border-border/50">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (safeMyPage > 1) setMyPage((p) => p - 1);
+                            }}
+                            className={
+                              safeMyPage <= 1
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
+                          />
+                        </PaginationItem>
+
+                        {getPaginationItems(safeMyPage, myTotalPages).map(
+                          (page, idx) =>
+                            typeof page === "number" ? (
+                              <PaginationItem key={idx}>
+                                <PaginationLink
+                                  href="#"
+                                  isActive={page === safeMyPage}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setMyPage(page as number);
+                                  }}
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ) : (
+                              <PaginationItem key={idx}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            ),
+                        )}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (safeMyPage < myTotalPages)
+                                setMyPage((p) => p + 1);
+                            }}
+                            className={
+                              safeMyPage >= myTotalPages
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
                 )}
               </CardContent>
@@ -402,30 +479,63 @@ export function CitySetupPage() {
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-border/50">
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                        Page {safePage} of {totalPages}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="size-8 rounded-full shadow-sm hover:bg-accent"
-                          disabled={safePage <= 1}
-                          onClick={() => setPage((p) => p - 1)}
-                        >
-                          <ChevronLeft className="size-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="size-8 rounded-full shadow-sm hover:bg-accent"
-                          disabled={safePage >= totalPages}
-                          onClick={() => setPage((p) => p + 1)}
-                        >
-                          <ChevronRight className="size-4" />
-                        </Button>
-                      </div>
+                    <div className="pt-4 mt-4 border-t border-border/50">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (safePage > 1) setPage((p) => p - 1);
+                              }}
+                              className={
+                                safePage <= 1
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }
+                            />
+                          </PaginationItem>
+
+                          {getPaginationItems(safePage, totalPages).map(
+                            (page, idx) =>
+                              typeof page === "number" ? (
+                                <PaginationItem key={idx}>
+                                  <PaginationLink
+                                    href="#"
+                                    isActive={page === safePage}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setPage(page as number);
+                                    }}
+                                  >
+                                    {page}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              ) : (
+                                <PaginationItem key={idx}>
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              ),
+                          )}
+
+                          <PaginationItem>
+                            <PaginationNext
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (safePage < totalPages)
+                                  setPage((p) => p + 1);
+                              }}
+                              className={
+                                safePage >= totalPages
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
                     </div>
                   )}
                 </CardContent>
