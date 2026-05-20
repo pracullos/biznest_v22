@@ -1,5 +1,4 @@
 import { MapPin, Sparkles, Handshake } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { H2, H3, Small, Muted, Lead } from "@/components/ui/typography";
 
 const steps = [
@@ -37,7 +36,7 @@ const steps = [
 
 export function StepsSection() {
   return (
-    <section className="w-full bg-background py-14 md:py-20">
+    <section className="w-full py-14 md:py-20">
       <div className="mx-auto w-full max-w-6xl px-6 md:px-10">
         {/* Heading */}
         <div className="mx-auto mb-14 max-w-4xl text-center md:mb-16">
