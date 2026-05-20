@@ -13,7 +13,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
-  --color-far: var(--bg-far);
+  --color-far: var(--far);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -54,7 +54,7 @@
 :root {
   --radius: 0.625rem;
   --background: #f3f4f4;
-  --bg-far: #dddada;
+  --far: #f0efef;
   --foreground: #122344;
   --card: #ffffff;
   --card-foreground: #1a3263;
@@ -91,8 +91,8 @@
 }
 
 .dark {
-  --background: #122344;
-  --bg-far: #10203f;
+  --background: #15284f;
+  --far: #0d1930;
   --foreground: #f3f4f4;
   --card: #1a3263;
   --card-foreground: #f3f4f4;
