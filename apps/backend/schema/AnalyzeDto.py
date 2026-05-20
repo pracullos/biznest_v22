@@ -42,6 +42,7 @@ class NearbyEstablishment(BaseModel):
 class PsaEntry(BaseModel):
     code: str
     title: str
+    description: str = ""
 
 
 class LocationContext(BaseModel):

@@ -8,4 +8,5 @@
 export interface PsaEntry {
   code: string;
   title: string;
+  description?: string;
 }

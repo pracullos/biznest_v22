@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import anthropic
 import groq as groq_lib
@@ -131,9 +132,20 @@ class AnalyzeService:
         hazard_rows = self.repo.get_hazards_at_geometry(city_id, geojson_str, geo_type, buf)
         estab_rows  = self.repo.get_establishments_at_geometry(city_id, geojson_str, geo_type, buf)
 
-        # ── PSA classifications (all 8 systems, Redis-cached) ─────────────────
+        # ── PSA classifications (all 8 systems, parallel, Redis-cached) ────────
         psa = PsaService(self.redis_client)
-        psa_data: dict[str, list[dict]] = {sys: psa.get_system(sys) for sys in SYSTEMS}
+        psa_data: dict[str, list[dict]] = {}
+        with ThreadPoolExecutor(max_workers=len(SYSTEMS)) as pool:
+            futures = {pool.submit(psa.get_system, slug): slug for slug in SYSTEMS}
+            for future in as_completed(futures, timeout=30):
+                slug = futures[future]
+                try:
+                    psa_data[slug] = future.result()
+                except Exception:
+                    psa_data[slug] = []
+        # Ensure all systems present even if future timed out
+        for slug in SYSTEMS:
+            psa_data.setdefault(slug, [])
 
         # ── Assemble response context ─────────────────────────────────────────
         zoning_ctx = [ZoneHit(**r) for r in zone_rows]

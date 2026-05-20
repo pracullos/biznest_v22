@@ -438,17 +438,23 @@ def _to_wsl_path(windows_path: str) -> str:
     return "/mnt/" + drive + "/" + "/".join(parts)
 
 
-def _run_tippecanoe(geojson_path: str, pmtile_path: str) -> bool:
+def _run_tippecanoe(
+    geojson_path: str,
+    pmtile_path: str,
+    extra_args: list[str] | None = None,
+) -> bool:
     """
     Try native tippecanoe first (Linux / Mac / WSL-native process).
     On failure / not found, fall back to invoking tippecanoe inside WSL
     from a Windows host process, converting paths to /mnt/<drive>/... format.
     Returns True if a PMTile file was produced.
     """
+    args = [*_TIPPECANOE_ARGS, *(extra_args or [])]
+
     # 1. Native tippecanoe (Linux, Mac, or if tippecanoe is on Windows PATH)
     try:
         r = subprocess.run(
-            ["tippecanoe", "-o", pmtile_path, *_TIPPECANOE_ARGS, geojson_path],
+            ["tippecanoe", "-o", pmtile_path, *args, geojson_path],
             capture_output=True,
             text=True,
         )
@@ -464,7 +470,7 @@ def _run_tippecanoe(geojson_path: str, pmtile_path: str) -> bool:
         wsl_geojson = _to_wsl_path(geojson_path)
         wsl_pmtile = _to_wsl_path(pmtile_path)
         r = subprocess.run(
-            ["wsl", "tippecanoe", "-o", wsl_pmtile, *_TIPPECANOE_ARGS, wsl_geojson],
+            ["wsl", "tippecanoe", "-o", wsl_pmtile, *args, wsl_geojson],
             capture_output=True,
             text=True,
         )
@@ -474,17 +480,24 @@ def _run_tippecanoe(geojson_path: str, pmtile_path: str) -> bool:
         return False  # wsl.exe not on PATH or WSL not installed
 
 
-def _upload_pmtile(geojson: dict, object_key: str) -> str | None:
+def _upload_pmtile(
+    geojson: dict,
+    object_key: str,
+    layer_name: str | None = None,
+) -> str | None:
     """
     Shared core: GeoJSON → tippecanoe → MinIO upload.
+    layer_name: passed as --layer=<name> so the vector source-layer name is
+    predictable and matches the frontend engine fallback (no MinIO CORS needed).
     Returns object_key on success, None if tippecanoe unavailable.
     """
+    extra_args = [f"--layer={layer_name}"] if layer_name else []
     with tempfile.TemporaryDirectory() as tmpdir:
         geojson_path = Path(tmpdir) / "data.geojson"
         pmtile_path  = Path(tmpdir) / "data.pmtiles"
         geojson_path.write_text(json.dumps(geojson), encoding="utf-8")
 
-        if not _run_tippecanoe(str(geojson_path), str(pmtile_path)):
+        if not _run_tippecanoe(str(geojson_path), str(pmtile_path), extra_args):
             return None
 
         pmtile_bytes = pmtile_path.read_bytes()
@@ -502,12 +515,10 @@ def generate_pmtiles(geojson: dict, city_id: UUID) -> str | None:
     """
     Write GeoJSON → run tippecanoe (native or via WSL) → upload PMTile to MinIO.
     Returns the MinIO object key or None when tippecanoe unavailable.
-    The object key is stable and can be persisted in the DB.
-    Use presign_pmtile() to get a time-limited download URL.
-    Overwrites any existing zoning PMTile for this city.
+    Layer name forced to 'zoning' — matches engine fallback (sl ?? 'zoning').
     """
     object_key = f"{_ZONING_PMTILE_PREFIX}/city-{city_id}.pmtiles"
-    return _upload_pmtile(geojson, object_key)
+    return _upload_pmtile(geojson, object_key, layer_name="zoning")
 
 
 def generate_hazard_pmtiles(
@@ -519,11 +530,12 @@ def generate_hazard_pmtiles(
     """
     Build a hazard PMTile for a specific city/hazard_type/scenario combination.
     Used for manually drawn hazard areas (city-scoped, distinct from seeded province tiles).
+    Layer name forced to 'slice' — matches engine fallback (DEFAULT_HAZARD_SOURCE_LAYER).
     Returns the MinIO object key or None if tippecanoe is unavailable.
     """
     scenario_slug = scenario or "all"
     object_key = f"{_HAZARD_PMTILE_PREFIX}/{hazard_type}/{scenario_slug}/city-{city_id}.pmtiles"
-    return _upload_pmtile(geojson, object_key)
+    return _upload_pmtile(geojson, object_key, layer_name="slice")
 
 
 def presign_pmtile(object_key: str) -> str:
