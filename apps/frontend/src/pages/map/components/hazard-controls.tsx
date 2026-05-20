@@ -1,4 +1,4 @@
-import { AlertTriangle, LayoutGrid, X } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, LayoutGrid, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -10,13 +10,21 @@ import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { HazardPanel } from './hazard-panel'
 import { ZoningPanel } from './zoning-panel'
+import { AnalyzePanel } from './analyze-panel'
 
-type ActivePanel = 'hazard' | 'zoning' | null
+type ActivePanel = 'hazard' | 'zoning' | 'analyze' | null
 
 const STRIP_BUTTONS: { id: NonNullable<ActivePanel>; icon: LucideIcon; label: string }[] = [
-  { id: 'hazard', icon: AlertTriangle, label: 'Hazard Layers' },
-  { id: 'zoning', icon: LayoutGrid,   label: 'Zoning Layers' },
+  { id: 'hazard',  icon: AlertTriangle, label: 'Hazard Layers'       },
+  { id: 'zoning',  icon: LayoutGrid,   label: 'Zoning Layers'        },
+  { id: 'analyze', icon: BrainCircuit, label: 'Location Intelligence' },
 ]
+
+const PANEL_TITLES: Record<NonNullable<ActivePanel>, string> = {
+  hazard:  'Hazard Layers',
+  zoning:  'Zoning Layers',
+  analyze: 'Location Intelligence',
+}
 
 export function HazardControls() {
   const { hazardLayers, zoningPmtileUrl } = useMapContext()
@@ -27,8 +35,9 @@ export function HazardControls() {
   const hasZoning  = !!zoningPmtileUrl || !!selectedCity?.id
 
   const disabled: Record<NonNullable<ActivePanel>, boolean> = {
-    hazard: !hasHazards,
-    zoning: !hasZoning,
+    hazard:  !hasHazards,
+    zoning:  !hasZoning,
+    analyze: !selectedCity?.id,
   }
 
   return (
@@ -39,7 +48,7 @@ export function HazardControls() {
           <CardHeader className="pb-0 pt-3 px-3 shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold">
-                {activePanel === 'hazard' ? 'Hazard Layers' : 'Zoning Layers'}
+                {activePanel ? PANEL_TITLES[activePanel] : ''}
               </CardTitle>
               <Button
                 variant="ghost"
@@ -55,7 +64,9 @@ export function HazardControls() {
           <Separator className="mt-2 shrink-0" />
 
           <CardContent className="flex flex-col flex-1 min-h-0 p-0">
-            {activePanel === 'hazard' ? <HazardPanel /> : <ZoningPanel />}
+            {activePanel === 'hazard'  && <HazardPanel />}
+            {activePanel === 'zoning'  && <ZoningPanel />}
+            {activePanel === 'analyze' && <AnalyzePanel />}
           </CardContent>
         </Card>
       )}
@@ -88,7 +99,9 @@ export function HazardControls() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="left" sideOffset={8}>
-                    {isDisabled ? `${btn.label} — no data` : btn.label}
+                    {isDisabled
+                      ? btn.id === 'analyze' ? `${btn.label} — select a city first` : `${btn.label} — no data`
+                      : btn.label}
                   </TooltipContent>
                 </Tooltip>
               </div>
