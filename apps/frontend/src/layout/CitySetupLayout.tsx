@@ -43,6 +43,9 @@ export function CitySetupLayout() {
             <Button variant="ghost" size="sm" asChild>
               <Link to={"/dashboard" as never}>Dashboard</Link>
             </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={"/subscriptions" as never}>Subscription</Link>
+            </Button>
             <div className="mx-1 h-4 w-px bg-border" />
             <ModeToggle />
             <div className="mx-1 h-4 w-px bg-border" />
