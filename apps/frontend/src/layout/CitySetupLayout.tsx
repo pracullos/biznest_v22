@@ -28,8 +28,8 @@ export function CitySetupLayout() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex min-h-screen flex-col bg-far">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background backdrop-blur px-4 sm:px-6">
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-card backdrop-blur px-4 sm:px-6">
           <div className="flex items-center gap-2 font-semibold">
             <img
               src="/images/logo.png"

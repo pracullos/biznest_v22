@@ -13,7 +13,6 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
-  --color-far: var(--far);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -54,7 +53,6 @@
 :root {
   --radius: 0.625rem;
   --background: #f3f4f4;
-  --far: #f0efef;
   --foreground: #122344;
   --card: #ffffff;
   --card-foreground: #1a3263;
@@ -66,7 +64,7 @@
   --secondary-foreground: #f3f4f4;
   --muted: #e7eaec;
   --muted-foreground: #547792;
-  --accent: #c28f47;
+  --accent: #cf984c;
   --accent-foreground: #1a3263;
   --destructive: #b25a5a;
   --destructive-foreground: #fdf8f8;
@@ -92,7 +90,6 @@
 
 .dark {
   --background: #15284f;
-  --far: #0d1930;
   --foreground: #f3f4f4;
   --card: #1a3263;
   --card-foreground: #f3f4f4;
