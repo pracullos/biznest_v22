@@ -63,7 +63,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="mt-10 w-full border-t border-border/20 px-6 pt-8 md:mt-12 md:px-10 md:pt-8">
+      <div className="mt-10 w-full border-t border-border/90 px-6 pt-8 md:mt-12 md:px-10 md:pt-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
           <span className="text-md font-semibold uppercase tracking-widest text-muted-foreground text-center">
             In partnership with

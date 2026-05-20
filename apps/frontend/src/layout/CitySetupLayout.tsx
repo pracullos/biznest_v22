@@ -29,7 +29,7 @@ export function CitySetupLayout() {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex min-h-screen flex-col bg-background">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4 sm:px-6">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-card backdrop-blur px-4 sm:px-6">
           <div className="flex items-center gap-2 font-semibold">
             <img
               src="/images/logo.png"
@@ -42,6 +42,9 @@ export function CitySetupLayout() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link to={"/dashboard" as never}>Dashboard</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={"/subscriptions" as never}>Subscription</Link>
             </Button>
             <div className="mx-1 h-4 w-px bg-border" />
             <ModeToggle />
