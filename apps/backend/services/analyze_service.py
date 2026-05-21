@@ -4,8 +4,15 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import anthropic
-import groq as groq_lib
+try:
+    import anthropic
+except ModuleNotFoundError:
+    anthropic = None
+
+try:
+    import groq as groq_lib
+except ModuleNotFoundError:
+    groq_lib = None
 from fastapi import HTTPException, status
 
 from repository.analyze_repository import AnalyzeRepository
@@ -58,6 +65,12 @@ class AnalyzeService:
         self.redis_client = redis_client
 
     def analyze(self, city_id: str, payload: AnalyzeRequest) -> AnalyzeResponse:
+        if anthropic is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AI dependency not installed (anthropic package missing)",
+            )
+
         if not _ANTHROPIC_API_KEY:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -106,6 +119,12 @@ class AnalyzeService:
     def analyze_location(
         self, city_id: str, payload: LocationAnalyzeRequest
     ) -> LocationAnalyzeResponse:
+        if groq_lib is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AI dependency not installed (groq package missing)",
+            )
+
         if not _GROQ_API_KEY:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

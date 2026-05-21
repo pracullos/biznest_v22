@@ -1,6 +1,13 @@
 import { Check, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { H2, H3, Muted } from "@/components/ui/typography";
+import { H2, Muted } from "@/components/ui/typography";
+
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const problems = [
   {
@@ -13,6 +20,7 @@ const problems = [
     icon: X,
     iconBg: "bg-destructive/10 border-destructive/20",
     iconColor: "text-destructive",
+    imageSrc: "/images/problem.jpg",
   },
 ];
 
@@ -27,6 +35,7 @@ const solutions = [
     icon: Check,
     iconBg: "bg-green-500/10 border-green-500/20",
     iconColor: "text-green-500",
+    imageSrc: "/images/solution.jpg",
   },
 ];
 
@@ -36,41 +45,57 @@ function ProblemCard({
   icon: Icon,
   iconBg,
   iconColor,
+  imageSrc,
 }: {
   title: string;
   points: string[];
   icon: LucideIcon;
   iconBg: string;
   iconColor: string;
+  imageSrc?: string;
 }) {
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md md:p-8">
-      <div className="mb-6">
-        <div
-          className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${iconBg}`}
-        >
-          <Icon className={`h-7 w-7 ${iconColor}`} />
+    <Card className="relative mx-auto w-full bg-card p-0 border-0 max-w-none overflow-hidden h-full rounded-xl shadow-md transition-shadow hover:shadow-lg">
+      {imageSrc && (
+        <div className="relative w-full leading-none">
+          <img
+            src={imageSrc}
+            alt={title}
+            className="block relative z-0 w-full h-52 object-cover md:h-64"
+          />
+          <div className="absolute inset-0 z-10 bg-black/25 pointer-events-none" />
         </div>
-      </div>
+      )}
 
-      <H3 className="mb-4">{title}</H3>
+      <CardHeader className="relative z-20 p-6 md:p-8">
+        <div className="flex items-center gap-4 mb-3">
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-lg border ${iconBg}`}
+          >
+            <Icon className={`h-6 w-6 ${iconColor}`} />
+          </div>
+          <CardTitle className="!mb-0">{title}</CardTitle>
+        </div>
 
-      <ul className="space-y-3">
-        {points.map((point, i) => (
-          <li key={i} className="flex gap-3">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
-            <Muted className="md:text-base">{point}</Muted>
-          </li>
-        ))}
-      </ul>
-    </article>
+        <CardDescription>
+          <ul className="space-y-2">
+            {points.map((point, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
+                <Muted className="md:text-base">{point}</Muted>
+              </li>
+            ))}
+          </ul>
+        </CardDescription>
+      </CardHeader>
+    </Card>
   );
 }
 
 export function ProblemsSection() {
   return (
     <section className="w-full py-14 md:py-20">
-      <div className="mx-auto w-full max-w-6xl px-6 md:px-10">
+      <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
         {/* Heading */}
         <div className="mx-auto mb-14 max-w-4xl text-center md:mb-16">
           <H2 className="border-0 pb-0">
@@ -80,7 +105,7 @@ export function ProblemsSection() {
         </div>
 
         {/* Cards Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 items-stretch">
           {problems.map((problem, i) => (
             <ProblemCard key={i} {...problem} />
           ))}
