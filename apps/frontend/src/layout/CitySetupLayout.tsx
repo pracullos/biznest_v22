@@ -1,4 +1,4 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Outlet } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthContext } from "@/context/auth.context";
@@ -23,7 +23,7 @@ export function CitySetupLayout() {
     toast.success("Signed out successfully!", { position: "top-center" });
     setTimeout(() => {
       void signOut();
-    }, 800);
+    }, 400);
   };
 
   return (
@@ -40,13 +40,6 @@ export function CitySetupLayout() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to={"/dashboard" as never}>Dashboard</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to={"/subscriptions" as never}>Subscription</Link>
-            </Button>
-            <div className="mx-1 h-4 w-px bg-border" />
             <ModeToggle />
             <div className="mx-1 h-4 w-px bg-border" />
             <div className="flex items-center gap-2 pl-1">
