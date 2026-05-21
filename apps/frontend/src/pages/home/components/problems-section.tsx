@@ -95,7 +95,7 @@ function ProblemCard({
 export function ProblemsSection() {
   return (
     <section className="w-full py-14 md:py-20">
-      <div className="mx-auto w-full max-w-6xl px-6 md:px-10">
+      <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
         {/* Heading */}
         <div className="mx-auto mb-14 max-w-4xl text-center md:mb-16">
           <H2 className="border-0 pb-0">

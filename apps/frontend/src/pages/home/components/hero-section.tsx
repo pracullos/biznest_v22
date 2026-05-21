@@ -11,7 +11,7 @@ const benefits = [
 export function HeroSection() {
   return (
     <section className="relative w-full overflow-hidden py-12 md:py-20 mt-12">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 md:flex-row md:gap-10 md:px-10">
+      <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-8 px-6 md:flex-row md:gap-10 md:px-10">
         {/* Left: Text & CTAs */}
         <div className="flex-1 flex flex-col items-start text-left">
           <Small className="mb-4">For Growth-Minded Founders</Small>
