@@ -5,7 +5,7 @@ export function Footer() {
 
   return (
     <footer className="bg-[#1a2333] text-white rounded-t-[3rem] pt-16 pb-12 mt-12 font-sans">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
         {/* Top Hero Section */}
         <div className="flex flex-col items-center justify-center text-center mb-16">
           <Link
