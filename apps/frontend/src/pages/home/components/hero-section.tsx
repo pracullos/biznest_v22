@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { H1, Small, Lead } from "@/components/ui/typography";
 
@@ -52,13 +51,15 @@ export function HeroSection() {
 
         {/* Right: Sample Image */}
         <div className="flex-1 flex justify-center items-center">
-          <div className="w-full max-w-lg aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-primary/10 shadow-xl flex items-center justify-center">
-            {/* Placeholder animation box: replace with Lottie when available */}
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-white/5 to-white/2 p-6">
-              <div className="flex h-full w-full items-center justify-center">
-                <Map className="size-24 text-primary/70" />
-              </div>
-            </div>
+          <div className="w-full max-w-lg aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-primary/10 shadow-xl relative">
+            {/* Image fills the entire card */}
+            <img
+              src="/images/map.jpeg"
+              alt="Sample map"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* optional overlay for subtle vignette */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-black/10 mix-blend-multiply" />
           </div>
         </div>
       </div>
