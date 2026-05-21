@@ -1,38 +1,5 @@
-import { MapPin, Sparkles, Handshake } from "lucide-react";
 import { H2, H3, Small, Muted, Lead } from "@/components/ui/typography";
-
-const steps = [
-  {
-    step: "Step 01",
-    title: "Tell BizNest What You Are Building",
-    description:
-      "Share your business type, budget range, and ideal customer profile in under 2 minutes.",
-    hint: "No spreadsheets, no manual research needed.",
-    icon: MapPin,
-    color: "text-blue-500",
-    badgeColor: "bg-blue-500/15 border-blue-500/40",
-  },
-  {
-    step: "Step 02",
-    title: "Review AI-Ranked Location Matches",
-    description:
-      "Get a clear shortlist of high-potential areas scored by demand, competition, and growth signals.",
-    hint: "Focus on the top opportunities first.",
-    icon: Sparkles,
-    color: "text-amber-500",
-    badgeColor: "bg-amber-500/15 border-amber-500/40",
-  },
-  {
-    step: "Step 03",
-    title: "Launch Faster With Local Connections",
-    description:
-      "Connect with nearby businesses and partners to accelerate your opening and reduce launch friction.",
-    hint: "Move from idea to opening with confidence.",
-    icon: Handshake,
-    color: "text-green-500",
-    badgeColor: "bg-green-500/15 border-green-500/40",
-  },
-];
+import { steps, stepsBackground } from "@/config/home";
 
 export function StepsSection() {
   return (
@@ -57,7 +24,7 @@ export function StepsSection() {
       <div
         className="w-full overflow-hidden pt-14 pb-20 md:pt-20 md:pb-32 dark:bg-slate-950/60 dark:bg-blend-multiply"
         style={{
-          backgroundImage: "url('/images/steps.jpg')",
+          backgroundImage: `url('${stepsBackground}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

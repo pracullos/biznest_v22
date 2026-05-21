@@ -2,11 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { H1, Small, Lead } from "@/components/ui/typography";
 
-const benefits = [
-  "AI-driven location insights tailored to your industry",
-  "Connect with nearby businesses instantly",
-  "Free to join — get started in minutes",
-];
+import { heroBenefits } from "@/config/home";
 
 export function HeroSection() {
   return (
@@ -37,7 +33,7 @@ export function HeroSection() {
           </div>
 
           <ul className="space-y-2">
-            {benefits.map((benefit, i) => (
+            {heroBenefits.map((benefit, i) => (
               <li
                 key={i}
                 className="flex items-center gap-2 text-base text-foreground/90 md:text-lg"

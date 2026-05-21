@@ -1,4 +1,3 @@
-import { Check, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { H2, Muted } from "@/components/ui/typography";
 
@@ -9,35 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const problems = [
-  {
-    title: "Stressful & Manual Guessing",
-    points: [
-      "Choosing locations by foot traffic alone often leads to expensive guesswork.",
-      "A single wrong location decision can stall growth and burn precious runway.",
-      "Manual research across maps, permits, and demographics is slow and exhausting.",
-    ],
-    icon: X,
-    iconBg: "bg-destructive/10 border-destructive/20",
-    iconColor: "text-destructive",
-    imageSrc: "/images/problem.jpg",
-  },
-];
-
-const solutions = [
-  {
-    title: "Smart & Data-Driven",
-    points: [
-      "AI-backed market data highlights where demand, competition, and opportunity align.",
-      "Tailored location scoring ranks the best spots for your exact business profile.",
-      "Instant local business connections help you partner, grow, and launch with confidence.",
-    ],
-    icon: Check,
-    iconBg: "bg-green-500/10 border-green-500/20",
-    iconColor: "text-green-500",
-    imageSrc: "/images/solution.jpg",
-  },
-];
+import { problems, solutions } from "@/config/home";
 
 function ProblemCard({
   title,
