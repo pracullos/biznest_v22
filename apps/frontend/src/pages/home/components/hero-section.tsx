@@ -1,18 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { H1, Small, Lead } from "@/components/ui/typography";
 
-const benefits = [
-  "AI-driven location insights tailored to your industry",
-  "Connect with nearby businesses instantly",
-  "Free to join — get started in minutes",
-];
+import { heroBenefits } from "@/config/home";
 
 export function HeroSection() {
   return (
     <section className="relative w-full overflow-hidden py-12 md:py-20 mt-12">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 md:flex-row md:gap-10 md:px-10">
+      <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-8 px-6 md:flex-row md:gap-10 md:px-10">
         {/* Left: Text & CTAs */}
         <div className="flex-1 flex flex-col items-start text-left">
           <Small className="mb-4">For Growth-Minded Founders</Small>
@@ -38,7 +33,7 @@ export function HeroSection() {
           </div>
 
           <ul className="space-y-2">
-            {benefits.map((benefit, i) => (
+            {heroBenefits.map((benefit, i) => (
               <li
                 key={i}
                 className="flex items-center gap-2 text-base text-foreground/90 md:text-lg"
@@ -52,13 +47,15 @@ export function HeroSection() {
 
         {/* Right: Sample Image */}
         <div className="flex-1 flex justify-center items-center">
-          <div className="w-full max-w-lg aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-primary/10 shadow-xl flex items-center justify-center">
-            {/* Placeholder animation box: replace with Lottie when available */}
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-white/5 to-white/2 p-6">
-              <div className="flex h-full w-full items-center justify-center">
-                <Map className="size-24 text-primary/70" />
-              </div>
-            </div>
+          <div className="w-full max-w-lg aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-primary/10 shadow-xl relative">
+            {/* Image fills the entire card */}
+            <img
+              src="/images/map.jpeg"
+              alt="Sample map"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* optional overlay for subtle vignette */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-black/10 mix-blend-multiply" />
           </div>
         </div>
       </div>
