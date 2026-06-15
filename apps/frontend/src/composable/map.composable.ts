@@ -289,6 +289,59 @@ export function useDrawPolygon(
 
 // ── useZoningPanel ────────────────────────────────────────────────────────────
 
+export interface ZoningScenarioGroup {
+  /** null = zones with no scenario set */
+  scenario:     string | null
+  scenarioType: string | null
+  zoneTypes:    [string, number][]              // [zone_type_key, count]
+  zoneColors:   Record<string, string | null>   // zone_type_key → first color_hex seen
+}
+
+function buildZoneGroups(zones: ZoningAreaSummary[]): {
+  zoneTypes:      [string, number][]
+  zoneColors:     Record<string, string | null>
+  scenarioGroups: ZoningScenarioGroup[]
+} {
+  // Flat aggregates (all zones combined)
+  const flatGrouped: Record<string, number>          = {}
+  const flatColors:  Record<string, string | null>   = {}
+
+  // Per-scenario aggregates  (key = scenario ?? '__none__')
+  const scenMap = new Map<string, { scenario: string | null; scenarioType: string | null; counts: Record<string, number>; colors: Record<string, string | null> }>()
+
+  for (const z of zones) {
+    const typeKey = z.zone_type ?? '(unlabelled)'
+    flatGrouped[typeKey] = (flatGrouped[typeKey] ?? 0) + 1
+    if (!(typeKey in flatColors)) flatColors[typeKey] = z.color_hex ?? null
+
+    const scenKey = z.scenario ?? '__none__'
+    if (!scenMap.has(scenKey)) {
+      scenMap.set(scenKey, { scenario: z.scenario ?? null, scenarioType: z.scenario_type ?? null, counts: {}, colors: {} })
+    }
+    const entry = scenMap.get(scenKey)!
+    entry.counts[typeKey] = (entry.counts[typeKey] ?? 0) + 1
+    if (!(typeKey in entry.colors)) entry.colors[typeKey] = z.color_hex ?? null
+  }
+
+  const scenarioGroups: ZoningScenarioGroup[] = Array.from(scenMap.values()).map(({ scenario, scenarioType, counts, colors }) => ({
+    scenario,
+    scenarioType,
+    zoneTypes:  Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)),
+    zoneColors: colors,
+  })).sort((a, b) => {
+    // No-scenario group last
+    if (a.scenario === null) return 1
+    if (b.scenario === null) return -1
+    return a.scenario.localeCompare(b.scenario)
+  })
+
+  return {
+    zoneTypes:      Object.entries(flatGrouped).sort(([a], [b]) => a.localeCompare(b)),
+    zoneColors:     flatColors,
+    scenarioGroups,
+  }
+}
+
 export function useZoningPanel() {
   const { selectedCity } = useCityContext()
   const cityId = selectedCity?.id ?? ''
@@ -311,19 +364,7 @@ export function useZoningPanel() {
   const zones: ZoningAreaSummary[] = zonesRes?.data ?? []
   const isLoading = pmtilesLoading || zonesLoading
 
-  const grouped = zones.reduce<Record<string, number>>((acc, z) => {
-    const key = z.zone_type ?? '(unlabelled)'
-    acc[key] = (acc[key] ?? 0) + 1
-    return acc
-  }, {})
-  const zoneTypes = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b))
+  const { zoneTypes, zoneColors, scenarioGroups } = buildZoneGroups(zones)
 
-  // First color_hex seen per zone_type — used to show swatches for OCR zones
-  const zoneColors = zones.reduce<Record<string, string | null>>((acc, z) => {
-    const key = z.zone_type ?? '(unlabelled)'
-    if (!(key in acc)) acc[key] = z.color_hex ?? null
-    return acc
-  }, {})
-
-  return { pmtileUrl, zones, zoneTypes, zoneColors, isLoading }
+  return { pmtileUrl, zones, zoneTypes, zoneColors, scenarioGroups, isLoading }
 }

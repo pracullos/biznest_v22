@@ -14,6 +14,12 @@ class ZoneType(str, Enum):
     industrial = "industrial"
     agriculture = "agriculture"
 
+
+class ScenarioType(str, Enum):
+    year = "year"
+    month = "month"
+
+
 class ZoningAreaCreate(BaseModel):
     city_id: Annotated[UUID, Field(description="City Id")]
     zone_type: Annotated[
@@ -24,12 +30,24 @@ class ZoningAreaCreate(BaseModel):
             examples=["residential", "commercial", "industrial", "agriculture"],
         )
     ]
+    color_hex: Annotated[
+        str | None,
+        Field(default=None, description="Hex fill color e.g. '#fbbf24'. Auto-assigned from zone_type if omitted.")
+    ]
     severity: Annotated[
         int | None,
         Field(default=None, description="Severity classification 1–5", ge=1, le=5)
     ]
+    scenario: Annotated[
+        str | None,
+        Field(default=None, description="Scenario label e.g. '2024', '2025-06'", max_length=50)
+    ]
+    scenario_type: Annotated[
+        ScenarioType | None,
+        Field(default=None, description="Scenario granularity: 'year' or 'month'")
+    ]
     geometry: Annotated[
-        dict[str,Any] | None,
+        dict[str, Any] | None,
         Field(
             default=None,
             description="Zone geometry for this zone",
@@ -47,9 +65,21 @@ class ZoningAreaUpdate(BaseModel):
             examples=["residential", "commercial", "industrial", "agriculture"],
         )
     ]
+    color_hex: Annotated[
+        str | None,
+        Field(default=None, description="Hex fill color override. Auto-updated from zone_type if zone_type changes and this is omitted.")
+    ]
     severity: Annotated[
         int | None,
         Field(default=None, description="Severity classification 1–5", ge=1, le=5)
+    ]
+    scenario: Annotated[
+        str | None,
+        Field(default=None, description="Scenario label e.g. '2024', '2025-06'", max_length=50)
+    ]
+    scenario_type: Annotated[
+        ScenarioType | None,
+        Field(default=None, description="Scenario granularity: 'year' or 'month'")
     ]
     geometry: Annotated[
         dict[str, Any] | None,
@@ -71,6 +101,8 @@ class ZoningAreaSummary(BaseModel):
     zone_type: str | None = None  # str, not ZoneType — OCR zones may have hex-color labels
     color_hex: str | None = None
     severity: int | None = None
+    scenario: str | None = None
+    scenario_type: str | None = None
     pmtile_url: str | None = None
     created_by: UUID
     created_at: datetime
@@ -108,6 +140,8 @@ class ZoningAreaResponse(BaseModel):
     ]
     color_hex: Annotated[str | None, Field(description="Hex color code for this zone, e.g. #RRGGBB")]
     severity: Annotated[int | None, Field(default=None, description="Severity classification 1–5")]
+    scenario: Annotated[str | None, Field(default=None, description="Scenario label e.g. '2024', '2025-06'")]
+    scenario_type: Annotated[str | None, Field(default=None, description="Scenario granularity: 'year' or 'month'")]
     geometry: Annotated[
         dict[str, Any] | None,
         Field(

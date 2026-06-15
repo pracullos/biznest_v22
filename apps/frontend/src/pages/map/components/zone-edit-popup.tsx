@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { ZONE_TYPE_LABELS } from '@/config/hazard.config'
+import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS } from '@/config/hazard.config'
 
 const PRESET_ZONE_TYPES = Object.keys(ZONE_TYPE_LABELS)
 const selectCls =
@@ -144,26 +144,32 @@ export function ZoneEditPopup() {
         {view === 'edit' ? (
           <>
             {/* Zone type selector */}
-            <select
-              className={selectCls}
-              disabled={isBusy}
-              value={isCustom ? '__other__' : (label ?? '')}
-              onChange={e => {
-                if (e.target.value === '__other__') {
-                  setIsCustom(true)
-                  setLabel('')
-                  setTimeout(() => inputRef.current?.focus(), 30)
-                } else {
-                  setIsCustom(false)
-                  setLabel(e.target.value)
-                }
-              }}
-            >
-              {PRESET_ZONE_TYPES.map(t => (
-                <option key={t} value={t}>{ZONE_TYPE_LABELS[t]}</option>
-              ))}
-              <option value="__other__">Other…</option>
-            </select>
+            <div className="flex items-center gap-1.5">
+              <div
+                className="size-3 rounded-sm shrink-0 border border-border"
+                style={{ background: (!isCustom && ZONE_TYPE_COLORS[label]) ? ZONE_TYPE_COLORS[label] : '#888888' }}
+              />
+              <select
+                className={selectCls}
+                disabled={isBusy}
+                value={isCustom ? '__other__' : (label ?? '')}
+                onChange={e => {
+                  if (e.target.value === '__other__') {
+                    setIsCustom(true)
+                    setLabel('')
+                    setTimeout(() => inputRef.current?.focus(), 30)
+                  } else {
+                    setIsCustom(false)
+                    setLabel(e.target.value)
+                  }
+                }}
+              >
+                {PRESET_ZONE_TYPES.map(t => (
+                  <option key={t} value={t}>{ZONE_TYPE_LABELS[t]}</option>
+                ))}
+                <option value="__other__">Other…</option>
+              </select>
+            </div>
 
             {/* Custom label input shown when "Other" selected */}
             {isCustom && (

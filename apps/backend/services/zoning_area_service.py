@@ -21,9 +21,27 @@ from models.zoning_area import ZoningArea
 from services import geo_processing_service as gps
 from services.coordinate_service import clip_to_city_boundary
 
+# Canonical fill colors per zone_type — kept in sync with frontend ZONE_TYPE_COLORS.
+ZONE_TYPE_COLORS: dict[str, str] = {
+    "residential": "#fbbf24",  # amber  — standard yellow for residential
+    "commercial":  "#f87171",  # rose   — standard red for commercial
+    "industrial":  "#818cf8",  # indigo — standard purple-blue for industrial
+    "agriculture": "#4ade80",  # green  — standard green for agriculture
+}
 
-def get_by_city(city_id: UUID, db: Session) -> list[ZoningArea]:
-    return db.query(ZoningArea).filter(ZoningArea.city_id == city_id).all()
+
+def get_by_city(
+    city_id: UUID,
+    db: Session,
+    scenario: str | None = None,
+    scenario_type: str | None = None,
+) -> list[ZoningArea]:
+    q = db.query(ZoningArea).filter(ZoningArea.city_id == city_id)
+    if scenario is not None:
+        q = q.filter(ZoningArea.scenario == scenario)
+    if scenario_type is not None:
+        q = q.filter(ZoningArea.scenario_type == scenario_type)
+    return q.all()
 
 
 def get_geometry_by_city(city_id: UUID, db: Session) -> list[ZoningArea]:
@@ -48,6 +66,8 @@ def create(city_id: UUID, payload: ZoningAreaCreate, created_by: UUID, db: Sessi
     if data.get("geometry"):
         clipped = clip_to_city_boundary(data["geometry"], city_id, db)
         data["geometry"] = from_shape(shape(clipped), srid=4326)
+    if not data.get("color_hex") and data.get("zone_type"):
+        data["color_hex"] = ZONE_TYPE_COLORS.get(data["zone_type"])
     zone = ZoningArea(**data, created_by=created_by)
     db.add(zone)
     db.commit()
@@ -61,6 +81,9 @@ def update(zone_id: UUID, city_id: UUID, payload: ZoningAreaUpdate, db: Session)
     if "geometry" in data and data["geometry"] is not None:
         clipped = clip_to_city_boundary(data["geometry"], city_id, db)
         data["geometry"] = from_shape(shape(clipped), srid=4326)
+    # If zone_type changes without an explicit color_hex override, re-assign the canonical color.
+    if "zone_type" in data and "color_hex" not in data and data.get("zone_type") in ZONE_TYPE_COLORS:
+        data["color_hex"] = ZONE_TYPE_COLORS[data["zone_type"]]
     for field, value in data.items():
         setattr(zone, field, value)
     db.commit()
@@ -205,6 +228,8 @@ def process_zoning_image(
                     "id": str(z.id),
                     "zone_type": z.zone_type or "",
                     "color": z.color_hex or "#888888",
+                    "scenario": z.scenario,
+                    "scenario_type": z.scenario_type,
                 },
                 "geometry": mapping(to_shape(z.geometry)),
             })
@@ -234,6 +259,9 @@ def process_zoning_image(
             city_id=zone.city_id,
             zone_type=zone.zone_type,
             color_hex=color_hex,
+            severity=zone.severity,
+            scenario=zone.scenario,
+            scenario_type=zone.scenario_type,
             geometry=dict(mapping(poly)),
             pmtile_url=object_key,
             created_by=zone.created_by,
@@ -279,6 +307,8 @@ def regenerate_pmtile(city_id: UUID, db: Session) -> ZoningPmtilesResponse:
                     "id": str(z.id),
                     "zone_type": z.zone_type or "",
                     "color": z.color_hex or "#888888",
+                    "scenario": z.scenario,
+                    "scenario_type": z.scenario_type,
                 },
                 "geometry": mapping(to_shape(z.geometry)),
             })
@@ -310,7 +340,13 @@ def regenerate_pmtile(city_id: UUID, db: Session) -> ZoningPmtilesResponse:
     )
 
 
-def get_geojson(city_id: UUID, db: Session, bbox: str | None = None) -> dict:
+def get_geojson(
+    city_id: UUID,
+    db: Session,
+    bbox: str | None = None,
+    scenario: str | None = None,
+    scenario_type: str | None = None,
+) -> dict:
     """
     Return a GeoJSON FeatureCollection of all zoning areas for a city.
     Optional bbox='minLng,minLat,maxLng,maxLat' spatially filters via PostGIS ST_Intersects.
@@ -320,9 +356,15 @@ def get_geojson(city_id: UUID, db: Session, bbox: str | None = None) -> dict:
         ZoningArea.id,
         ZoningArea.zone_type,
         ZoningArea.color_hex,
+        ZoningArea.scenario,
+        ZoningArea.scenario_type,
         func.ST_AsGeoJSON(ZoningArea.geometry).label("geojson"),
     ).filter(ZoningArea.city_id == city_id, ZoningArea.geometry.isnot(None))
 
+    if scenario is not None:
+        q = q.filter(ZoningArea.scenario == scenario)
+    if scenario_type is not None:
+        q = q.filter(ZoningArea.scenario_type == scenario_type)
     if bbox:
         try:
             min_lng, min_lat, max_lng, max_lat = (float(v.strip()) for v in bbox.split(","))
@@ -340,6 +382,8 @@ def get_geojson(city_id: UUID, db: Session, bbox: str | None = None) -> dict:
                 "id": str(row.id),
                 "zone_type": row.zone_type,
                 "color_hex": row.color_hex,
+                "scenario": row.scenario,
+                "scenario_type": row.scenario_type,
             },
         }
         for row in q.all()

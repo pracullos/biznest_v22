@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from schema.ZoningAreaDto import (
+    ScenarioType,
     ZoningAreaCreate,
     ZoningAreaGeometryResponse,
     ZoningAreaResponse,
@@ -23,8 +24,13 @@ router = APIRouter()
 
 
 @router.get("/{city_id}/zoning", response_model=list[ZoningAreaSummary])
-def list_zoning_areas(city_id: UUID, db: Session = Depends(get_db)):
-    return zoning_area_service.get_by_city(city_id, db)
+def list_zoning_areas(
+    city_id: UUID,
+    scenario: str | None = Query(None, description="Filter by scenario label e.g. '2024', '2025-06'"),
+    scenario_type: ScenarioType | None = Query(None, description="Filter by scenario type: 'year' or 'month'"),
+    db: Session = Depends(get_db),
+):
+    return zoning_area_service.get_by_city(city_id, db, scenario=scenario, scenario_type=scenario_type)
 
 
 @router.post("/{city_id}/zoning", response_model=ZoningAreaResponse, status_code=status.HTTP_201_CREATED)
@@ -92,10 +98,12 @@ def regenerate_zoning_pmtiles(
 def get_zoning_geojson(
     city_id: UUID,
     bbox: str | None = Query(None, description="minLng,minLat,maxLng,maxLat — spatial filter"),
+    scenario: str | None = Query(None, description="Filter by scenario label e.g. '2024', '2025-06'"),
+    scenario_type: ScenarioType | None = Query(None, description="Filter by scenario type: 'year' or 'month'"),
     db: Session = Depends(get_db),
 ):
     return JSONResponse(
-        content=zoning_area_service.get_geojson(city_id, db, bbox),
+        content=zoning_area_service.get_geojson(city_id, db, bbox, scenario=scenario, scenario_type=scenario_type),
         media_type="application/geo+json",
     )
 

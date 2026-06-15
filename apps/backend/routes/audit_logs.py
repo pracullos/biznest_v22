@@ -17,6 +17,6 @@ def list_audit_logs(
     city_id: UUID | None = None,
     user_id: UUID | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_authenticated_user),
+    _: User = Depends(get_authenticated_user),
 ):
     return audit_log_service.get_all(city_id, user_id, db)

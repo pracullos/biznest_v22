@@ -40,6 +40,14 @@ export const ZONE_TYPE_LABELS: Record<string, string> = {
   agriculture: 'Agriculture',
 }
 
+/** Canonical fill colors per zone type — matches backend ZONE_TYPE_COLORS. */
+export const ZONE_TYPE_COLORS: Record<string, string> = {
+  residential: '#fbbf24',  // amber  — standard yellow for residential
+  commercial:  '#f87171',  // rose   — standard red for commercial
+  industrial:  '#818cf8',  // indigo — standard purple-blue for industrial
+  agriculture: '#4ade80',  // green  — standard green for agriculture
+}
+
 export function getDefaultScenario(hazardType: string): string | null {
   return HAZARD_DEFAULT_SCENARIOS[hazardType] ?? null
 }
