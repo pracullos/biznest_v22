@@ -5,6 +5,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { LogOut, MapPin, ChevronsUpDown, Check, Search } from "lucide-react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "@/context/auth.context";
 import { useCityContext } from "@/context/city.context";
@@ -51,7 +52,7 @@ function NavItems({ sections }: { sections: NavSection[] }) {
             <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="flex flex-col gap-3">
               {section.items.map((item) => {
                 const isActive =
                   location.pathname === item.to ||
@@ -60,6 +61,7 @@ function NavItems({ sections }: { sections: NavSection[] }) {
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
                       asChild
+                      className="gap-4 py-2"
                       isActive={isActive}
                       tooltip={item.title}
                     >
@@ -81,7 +83,7 @@ function NavItems({ sections }: { sections: NavSection[] }) {
 
 function CitySwitcher() {
   const cityIds = useCityIds();
-  const isInvestor = useIsRole('investor');
+  const isInvestor = useIsRole("investor");
   const { selectedCity, selectCity } = useCityContext();
   const navigate = useNavigate();
 
@@ -102,7 +104,7 @@ function CitySwitcher() {
   return (
     <SidebarGroup className="pb-0">
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="flex flex-col gap-3">
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -128,7 +130,7 @@ function CitySwitcher() {
                   <DropdownMenuItem
                     key={city.id}
                     onClick={() => void selectCity(city)}
-                    className="gap-2"
+                    className="gap-3"
                   >
                     <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
                     <div className="flex min-w-0 flex-col">
@@ -148,8 +150,10 @@ function CitySwitcher() {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => void navigate({ to: "/city-setup" as never })}
-                      className="gap-2 text-muted-foreground"
+                      onClick={() =>
+                        void navigate({ to: "/city-setup" as never })
+                      }
+                      className="gap-3 text-muted-foreground"
                     >
                       <Search className="size-3.5 shrink-0" />
                       <span className="text-sm">Browse cities</span>
@@ -214,7 +218,7 @@ export function AuthenticatedLayout() {
       <SidebarProvider className="h-screen overflow-hidden">
         <Sidebar collapsible="icon">
           <SidebarHeader>
-            <SidebarMenu>
+            <SidebarMenu className="flex flex-col gap-4">
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" tooltip="BizNest" asChild>
                   <Link to={"/dashboard" as never}>
@@ -234,12 +238,12 @@ export function AuthenticatedLayout() {
           </SidebarContent>
 
           <SidebarFooter>
-            <SidebarMenu>
+            <SidebarMenu className="flex flex-col gap-4">
               <SidebarMenuItem>
                 <SidebarMenuButton
                   size="lg"
                   tooltip={user.full_name ?? user.email}
-                  className="cursor-default"
+                  className="gap-4 py-2 cursor-default"
                 >
                   <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold">
                     {(user.full_name ?? user.email).slice(0, 2).toUpperCase()}
@@ -259,8 +263,15 @@ export function AuthenticatedLayout() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip="Sign out"
-                  onClick={() => void signOut()}
-                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  onClick={() => {
+                    toast.success("Signed out successfully!", {
+                      position: "top-center",
+                    });
+                    setTimeout(() => {
+                      void signOut();
+                    }, 400);
+                  }}
+                  className="gap-4 py-2 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                 >
                   <LogOut />
                   <span>Sign out</span>
