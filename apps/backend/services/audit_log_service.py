@@ -2,10 +2,11 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from models import AuditLog
 from models.audit_log import AuditLog
 
 
-def get_all(city_id: UUID | None, user_id: UUID | None, db: Session) -> list[AuditLog]:
+def get_all(city_id: UUID | None, user_id: UUID | None, db: Session) -> list[type[AuditLog]]:
     query = db.query(AuditLog)
     if city_id:
         query = query.filter(AuditLog.city_id == city_id)

@@ -15,6 +15,7 @@ from core.seed import seed
 from core.middleware import auth_enforcement_middleware
 from routes.auth import router as auth_router
 from routes.users import router as users_router
+from routes.test import test_route
 from routes.files import router as files_router
 from routes.cities import router as cities_router
 from routes.zoning_areas import router as zoning_router
@@ -63,6 +64,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(test_route, tags=["test"])
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(files_router, prefix="/files", tags=["files"])
 app.include_router(cities_router, prefix="/cities", tags=["cities"])

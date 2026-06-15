@@ -1,7 +1,8 @@
 import type { Polygon } from 'geojson'
 
-export type ZoneType = 'residential' | 'commercial' | 'industrial' | 'agriculture'
-export type DrawMode = 'draw_polygon' | 'draw_freehand'
+export type ZoneType     = 'residential' | 'commercial' | 'industrial' | 'agriculture'
+export type DrawMode     = 'draw_polygon' | 'draw_freehand'
+export type ScenarioType = 'year' | 'month'
 
 export type ZoningDrawPhase =
   | 'configuring'
@@ -12,19 +13,23 @@ export type ZoningDrawPhase =
   | 'error'
 
 export interface ZoningDrawState {
-  phase:      ZoningDrawPhase
-  zoneType:   ZoneType
-  severity:   number
-  drawMode:   DrawMode
-  geometry:   Polygon | null
-  pointCount: number
-  errorMsg:   string | null
+  phase:         ZoningDrawPhase
+  zoneType:      ZoneType
+  severity:      number
+  drawMode:      DrawMode
+  scenario:      string | null
+  scenarioType:  ScenarioType | null
+  geometry:      Polygon | null
+  pointCount:    number
+  errorMsg:      string | null
 }
 
 export type ZoningDrawAction =
   | { type: 'SET_ZONE_TYPE';      zoneType: ZoneType }
   | { type: 'SET_SEVERITY';       severity: number }
   | { type: 'SET_DRAW_MODE';      drawMode: DrawMode }
+  | { type: 'SET_SCENARIO';       scenario: string | null }
+  | { type: 'SET_SCENARIO_TYPE';  scenarioType: ScenarioType | null }
   | { type: 'START_DRAWING' }
   | { type: 'CANCEL_DRAWING' }
   | { type: 'SHAPE_DRAWN';        geometry: Polygon; pointCount: number }
@@ -36,13 +41,15 @@ export type ZoningDrawAction =
   | { type: 'DRAW_ANOTHER' }
 
 export const ZONING_DRAW_INITIAL: ZoningDrawState = {
-  phase:      'configuring',
-  zoneType:   'residential',
-  severity:   3,
-  drawMode:   'draw_polygon',
-  geometry:   null,
-  pointCount: 0,
-  errorMsg:   null,
+  phase:        'configuring',
+  zoneType:     'residential',
+  severity:     3,
+  drawMode:     'draw_polygon',
+  scenario:     null,
+  scenarioType: null,
+  geometry:     null,
+  pointCount:   0,
+  errorMsg:     null,
 }
 
 export function zoningDrawReducer(
@@ -61,6 +68,14 @@ export function zoningDrawReducer(
     case 'SET_DRAW_MODE':
       if (state.phase === 'drawing' || state.phase === 'saving') return state
       return { ...state, drawMode: action.drawMode }
+
+    case 'SET_SCENARIO':
+      if (state.phase === 'drawing' || state.phase === 'saving') return state
+      return { ...state, scenario: action.scenario }
+
+    case 'SET_SCENARIO_TYPE':
+      if (state.phase === 'drawing' || state.phase === 'saving') return state
+      return { ...state, scenarioType: action.scenarioType }
 
     case 'START_DRAWING':
       if (state.phase !== 'configuring' && state.phase !== 'drawn') return state

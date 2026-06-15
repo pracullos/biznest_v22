@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils'
 import { MapDrawPanel, mapSelectCls } from '@/components/map/map-draw-panel'
 import { MapUploadPanel } from '@/components/map/map-upload-panel'
 import { MapOcrPanel } from '@/components/map/map-ocr-panel'
-import { type ZoneType, ZONING_DRAW_INITIAL, zoningDrawReducer } from '@/reducer/zoning-draw.reducer'
+import { type ScenarioType, type ZoneType, ZONING_DRAW_INITIAL, zoningDrawReducer } from '@/reducer/zoning-draw.reducer'
 import { ZONING_UPLOAD_INITIAL, zoningUploadReducer } from '@/reducer/zoning-upload.reducer'
-import { ZONE_TYPE_LABELS } from '@/config/hazard.config'
+import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS } from '@/config/hazard.config'
 import { useGeoreference } from './composables/use-georeference'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -62,7 +62,15 @@ export function ZoningPage() {
   async function saveZoningGeometry(geometry: Polygon) {
     await saveWithDispatch(
         async () => {
-          await axios.post(`/cities/${cityId}/zoning`, { city_id: cityId, zone_type: drawState.zoneType, severity: drawState.severity, geometry })
+          await axios.post(`/cities/${cityId}/zoning`, {
+            city_id:       cityId,
+            zone_type:     drawState.zoneType,
+            color_hex:     ZONE_TYPE_COLORS[drawState.zoneType] ?? null,
+            severity:      drawState.severity,
+            scenario:      drawState.scenario || null,
+            scenario_type: drawState.scenarioType || null,
+            geometry,
+          })
           await axios.post(`/cities/${cityId}/zoning/regenerate-pmtiles`)
         },
         dispatchDraw,
@@ -108,7 +116,15 @@ export function ZoningPage() {
     dispatchUpload({ type: 'SAVE_START' })
     await saveWithDispatch(
       async () => {
-        await axios.post(`/cities/${cityId}/zoning`, { city_id: cityId, zone_type: uploadState.zoneType, severity: uploadState.severity, geometry: uploadState.geometry })
+        await axios.post(`/cities/${cityId}/zoning`, {
+          city_id:       cityId,
+          zone_type:     uploadState.zoneType,
+          color_hex:     ZONE_TYPE_COLORS[uploadState.zoneType] ?? null,
+          severity:      uploadState.severity,
+          scenario:      uploadState.scenario || null,
+          scenario_type: uploadState.scenarioType || null,
+          geometry:      uploadState.geometry,
+        })
         await axios.post(`/cities/${cityId}/zoning/regenerate-pmtiles`)
       },
       dispatchUpload,
@@ -201,13 +217,41 @@ export function ZoningPage() {
                     {(() => {
                       const locked = drawState.phase === 'drawing' || drawState.phase === 'saving'
                       return (
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Zone Type</label>
-                          <select disabled={locked} value={drawState.zoneType}
-                            onChange={e => dispatchDraw({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
-                            className={mapSelectCls}>
-                            {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
-                          </select>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Zone Type</label>
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className="size-3.5 rounded-sm shrink-0 border border-white/20"
+                                style={{ background: ZONE_TYPE_COLORS[drawState.zoneType] ?? '#888' }}
+                              />
+                              <select disabled={locked} value={drawState.zoneType}
+                                onChange={e => dispatchDraw({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
+                                className={mapSelectCls}>
+                                {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario</label>
+                            <input
+                              type="text" disabled={locked}
+                              value={drawState.scenario ?? ''}
+                              onChange={e => dispatchDraw({ type: 'SET_SCENARIO', scenario: e.target.value || null })}
+                              placeholder="e.g. 2024, 2025-06"
+                              className={mapSelectCls}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario Type</label>
+                            <select disabled={locked} value={drawState.scenarioType ?? ''}
+                              onChange={e => dispatchDraw({ type: 'SET_SCENARIO_TYPE', scenarioType: (e.target.value || null) as ScenarioType | null })}
+                              className={mapSelectCls}>
+                              <option value="">— none —</option>
+                              <option value="year">Year</option>
+                              <option value="month">Month</option>
+                            </select>
+                          </div>
                         </div>
                       )
                     })()}
@@ -225,13 +269,41 @@ export function ZoningPage() {
                     {(() => {
                       const locked = uploadState.phase === 'saving'
                       return (
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Zone Type</label>
-                          <select disabled={locked} value={uploadState.zoneType}
-                            onChange={e => dispatchUpload({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
-                            className={mapSelectCls}>
-                            {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
-                          </select>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Zone Type</label>
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className="size-3.5 rounded-sm shrink-0 border border-white/20"
+                                style={{ background: ZONE_TYPE_COLORS[uploadState.zoneType] ?? '#888' }}
+                              />
+                              <select disabled={locked} value={uploadState.zoneType}
+                                onChange={e => dispatchUpload({ type: 'SET_ZONE_TYPE', zoneType: e.target.value as ZoneType })}
+                                className={mapSelectCls}>
+                                {ZONE_TYPES.map(t => <option key={t} value={t}>{ZONE_TYPE_LABELS[t] ?? t}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario</label>
+                            <input
+                              type="text" disabled={locked}
+                              value={uploadState.scenario ?? ''}
+                              onChange={e => dispatchUpload({ type: 'SET_SCENARIO', scenario: e.target.value || null })}
+                              placeholder="e.g. 2024, 2025-06"
+                              className={mapSelectCls}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Scenario Type</label>
+                            <select disabled={locked} value={uploadState.scenarioType ?? ''}
+                              onChange={e => dispatchUpload({ type: 'SET_SCENARIO_TYPE', scenarioType: (e.target.value || null) as ScenarioType | null })}
+                              className={mapSelectCls}>
+                              <option value="">— none —</option>
+                              <option value="year">Year</option>
+                              <option value="month">Month</option>
+                            </select>
+                          </div>
                         </div>
                       )
                     })()}
