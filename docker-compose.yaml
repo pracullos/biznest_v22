@@ -13,6 +13,7 @@ services:
       - "${POSTGRES_PORT}:5432"
     networks:
       - biznest_net
+
   minio:
     image: minio/minio:latest
     container_name: biznest_minio
@@ -27,6 +28,7 @@ services:
       - biznest_net
     volumes:
       - biznest_data:/data
+
   redis:
     image: redis:7-alpine
     container_name: biznest_redis
@@ -50,21 +52,42 @@ services:
     environment:
       REDIS_HOSTS: redis:${REDIS_PORT}
 
-#  biznest_app:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    container_name: biznest_app
-#    ports:
-#      - "8000:8000"
-#    env_file:
-#      - .env
-#    depends_on:
-#      - postgres
-#      - minio
-#      - redis
-#    networks:
-#      - biznest_net
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: biznest_backend
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: postgres
+      MINIO_HOST: minio
+      REDIS_HOST: redis
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      - postgres
+      - minio
+      - redis
+    networks:
+      - biznest_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_MAPTILER_KEY: ${VITE_MAPTILER_KEY}
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN}
+        VITE_LGU_REGISTER_TOKEN: ${VITE_LGU_REGISTER_TOKEN}
+    container_name: biznest_frontend
+    ports:
+      - "${FRONTEND_PORT:-3001}:80"
+    depends_on:
+      - backend
+    networks:
+      - biznest_net
 
 volumes:
   biznest_db:
