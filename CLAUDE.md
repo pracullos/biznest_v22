@@ -23,8 +23,8 @@ pnpm -F frontend build                      # tsc + vite build
 pnpm -F frontend lint
 
 # Backend (http://localhost:8000/docs)
+docker compose up -d postgres minio redis   # PostgreSQL :5433 + MinIO :9000/:9090 (compose file at repo root)
 cd backend
-docker compose up -d                        # PostgreSQL :5433 + MinIO :9000/:9090
 pip install -r requirements.txt
 uvicorn main:app --reload
 

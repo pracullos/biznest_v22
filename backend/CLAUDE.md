@@ -8,8 +8,10 @@ FastAPI + PostgreSQL (SQLAlchemy sync + PostGIS via geoalchemy2) + MinIO (object
 
 ## Infrastructure
 
+`docker-compose.yaml` lives at repo root (covers postgres/minio/redis + optional `backend`/`frontend` containers).
+
 ```bash
-docker compose up -d
+cd .. && docker compose up -d postgres minio redis
 ```
 
 - PostgreSQL: `localhost:5433` (mapped from 5432), db/user/pass all `fastapi`

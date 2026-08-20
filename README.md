@@ -9,11 +9,11 @@ Geo-intelligence platform for Philippine city investment analysis. Multi-tenant,
 ## Repository structure
 
 ```
-apps/
-  frontend/          React 19 + Vite + TanStack Router + MapLibre GL
-  backend/           FastAPI + SQLAlchemy + PostGIS + MinIO
+frontend/            React 19 + Vite + TanStack Router + MapLibre GL
+backend/             FastAPI + SQLAlchemy + PostGIS + MinIO
 packages/
   api/               Auto-generated React Query + Axios client (Orval)
+docker-compose.yaml  Postgres, MinIO, Redis, backend, frontend
 ```
 
 ---
@@ -81,9 +81,11 @@ This pulls `http://localhost:8000/openapi.json` via Orval and writes React Query
 
 ### 1. Start infrastructure
 
+Compose file lives at repo root now — copy `.env.example` to `.env` there first.
+
 ```bash
-cd backend
-docker compose up -d
+cp .env.example .env
+docker compose up -d postgres minio redis
 ```
 
 Services started:
@@ -95,6 +97,8 @@ Services started:
 | MinIO console | `localhost:9090` | `minio` / `minio123` |
 
 The `uploads` bucket is created automatically on first startup.
+
+Run `docker compose up -d --build` (no service names) to also build+run the `backend` and `frontend` containers instead of running them locally.
 
 ### 2. Create Python environment
 
