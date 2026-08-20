@@ -17,14 +17,14 @@ FastAPI + PostgreSQL (PostGIS) + MinIO geo-intelligence API.
 
 ```bash
 git clone <repo-url>
-cd apps/backend
+cd backend
 ```
 
 ---
 
 ## 2. Create `.env`
 
-Create a `.env` file in `apps/backend/`:
+Create a `.env` file in `backend/`:
 
 ```env
 DATABASE_URL=postgresql://fastapi:fastapi@localhost:5433/fastapi
@@ -107,10 +107,10 @@ The server automatically:
 
 ---
 
-## To seed the data run it in wsl, navigation to the backend project folder and run cd /mnt/e/Dev/monorepo\ projects/biznest_v2/apps/backend (note this is my path) and run the following commands:
+## To seed the data run it in wsl, navigation to the backend project folder and run cd /mnt/e/Dev/monorepo\ projects/biznest_v2/backend (note this is my path) and run the following commands:
 ## 7. Seed Philippine administrative boundaries
 
-Requires local GeoJSON files in `boundaries/`. Run from `apps/backend/`:
+Requires local GeoJSON files in `boundaries/`. Run from `backend/`:
 
 ```bash
 # Seed all levels (region → province → city → barangay)
@@ -163,7 +163,7 @@ The hazard seeder calls tippecanoe as a subprocess. Since it runs on Windows but
 
 ```bash
 # Open WSL Ubuntu terminal, navigate to the project
-cd /mnt/e/Dev/monorepo\ projects/biznest_v2/apps/backend
+cd /mnt/e/Dev/monorepo\ projects/biznest_v2/backend
 
 # Install Python deps inside WSL (one-time)
 pip install -r requirements.txt

@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo structure
 
-pnpm workspaces + Turborepo. All apps under `apps/`, shared packages under `packages/`.
+pnpm workspaces + Turborepo. `frontend` and `backend` at repo root, shared packages under `packages/`.
 
-- `apps/backend` — FastAPI + PostgreSQL + MinIO. See `apps/backend/CLAUDE.md` for full detail.
-- `apps/frontend` — React 19 + TanStack Router + React Query + Tailwind CSS 4 + shadcn/ui
+- `backend` — FastAPI + PostgreSQL + MinIO. See `backend/CLAUDE.md` for full detail.
+- `frontend` — React 19 + TanStack Router + React Query + Tailwind CSS 4 + shadcn/ui
 - `packages/api` — Auto-generated React Query + Axios client (Orval from FastAPI OpenAPI spec)
 
 ## Commands
@@ -23,7 +23,7 @@ pnpm -F frontend build                      # tsc + vite build
 pnpm -F frontend lint
 
 # Backend (http://localhost:8000/docs)
-cd apps/backend
+cd backend
 docker compose up -d                        # PostgreSQL :5433 + MinIO :9000/:9090
 pip install -r requirements.txt
 uvicorn main:app --reload
@@ -40,7 +40,7 @@ pnpm generate:api                           # alias: pnpm orval
 
 No test infrastructure exists yet (no pytest, no vitest).
 
-## Frontend architecture (`apps/frontend`)
+## Frontend architecture (`frontend`)
 
 ### Routing
 
@@ -181,7 +181,7 @@ Docker Compose services: PostgreSQL on port `5433` (host) → `5432` (container)
 
 ## Backend summary
 
-See `apps/backend/CLAUDE.md` for full architecture. Non-obvious points:
+See `backend/CLAUDE.md` for full architecture. Non-obvious points:
 
 - `HazardArea` is province-scoped (NOAH data); routes are under `/provinces/{province_id}/hazards/*` — pass `province_id` directly, no city-level hazard filtering
 - Hazard PMTile URLs are presigned MinIO URLs with **5-hour TTL** — frontend must re-fetch when expired; do not cache them indefinitely
