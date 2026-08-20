@@ -37,7 +37,7 @@ pnpm install
 
 ### 2. Configure environment
 
-Create `apps/frontend/.env`:
+Create `frontend/.env`:
 
 ```env
 VITE_API_URL=http://127.0.0.1:8000
@@ -82,7 +82,7 @@ This pulls `http://localhost:8000/openapi.json` via Orval and writes React Query
 ### 1. Start infrastructure
 
 ```bash
-cd apps/backend
+cd backend
 docker compose up -d
 ```
 
@@ -99,7 +99,7 @@ The `uploads` bucket is created automatically on first startup.
 ### 2. Create Python environment
 
 ```bash
-cd apps/backend
+cd backend
 python -m venv .venv
 
 # Windows
@@ -126,7 +126,7 @@ Tables are created via `Base.metadata.create_all` on startup. Seed data (subscri
 
 > **Note**: `create_all` on startup handles local dev. Use Alembic for versioned production migrations. Spatial indexes (`GIST`, composite B-tree) only exist after `alembic upgrade head` — `create_all` does not create them.
 
-All commands run from `apps/backend/`.
+All commands run from `backend/`.
 
 ### Apply all pending migrations
 
@@ -210,7 +210,7 @@ The scripts must be run **inside WSL** (not from Windows PowerShell/CMD) when PM
 ```bash
 # Your Windows repo at E:\Dev\monorepo projects\biznest_v2
 # is available in WSL at:
-cd /mnt/e/Dev/monorepo\ projects/biznest_v2/apps/backend
+cd /mnt/e/Dev/monorepo\ projects/biznest_v2/backend
 
 # Note we create another virtual environment here in WSL — the one created in Windows is separate and won't have tippecanoe available
 # Activate your Python venv (create one in WSL if needed)
@@ -228,7 +228,7 @@ python scripts/seed_local_boundaries.py
 
 ## Data seeding (PMTiles)
 
-All seed scripts run from `apps/backend/` with the venv activated. Docker Compose must be running.
+All seed scripts run from `backend/` with the venv activated. Docker Compose must be running.
 
 Seeding order matters: **boundaries → hazards → faultlines**.
 

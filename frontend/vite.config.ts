@@ -18,8 +18,8 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: '@', replacement: path.resolve(__dirname, './src') },
-      { find: /^@networking\/api(.*)/, replacement: path.resolve(__dirname, '../../packages/api$1') },
-      { find: /^@networking\/service(.*)/, replacement: path.resolve(__dirname, '../../packages/service/src$1') },
+      { find: /^@networking\/api(.*)/, replacement: path.resolve(__dirname, '../packages/api$1') },
+      { find: /^@networking\/service(.*)/, replacement: path.resolve(__dirname, '../packages/service/src$1') },
     ]
   },
   server: {
