@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { CityResponse } from '@networking/api/model/cityResponse'
+import type { CityResponse } from '@/types/api-aliases'
 import type { BoundaryGeometry } from '@/engine/map.engine'
 import type { BoundaryPhase } from '@/reducer/boundary.reducer'
 

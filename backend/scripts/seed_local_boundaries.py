@@ -8,6 +8,7 @@ Barangay table is not touched.
 Usage:
   python scripts/seed_local_boundaries.py
   python scripts/seed_local_boundaries.py --skip-pmtiles
+  python scripts/seed_local_boundaries.py --province "Agusan del Norte"
 """
 
 from __future__ import annotations
@@ -77,6 +78,16 @@ def _normalize_name(s: str) -> str:
     s = unicodedata.normalize("NFD", s)
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     return " ".join(s.lower().split())
+
+
+def _province_matches(value: str | None, filt: str | None) -> bool:
+    """Case/space/diacritic-insensitive substring match, e.g. 'AgusanDelNorte' matches 'Agusan del Norte'."""
+    if not filt:
+        return True
+    if not value:
+        return False
+    norm = lambda s: "".join(ch for ch in _normalize_name(s) if ch.isalnum())
+    return norm(filt) in norm(value)
 
 
 def _region_code_from_arcgis_name(arcgis_region: str) -> str | None:
@@ -186,17 +197,32 @@ def _sql_escape(s: str) -> str:
 
 
 async def _fetch_city_list(client: httpx.AsyncClient) -> list[dict]:
-    """One request — all cities, no geometry. ArcGIS f=json returns attributes dicts."""
-    params = {
-        "where": "1=1",
-        "outFields": _OUTFIELDS,
-        "returnGeometry": "false",
-        "f": "json",
-        "resultRecordCount": "10000",
-    }
-    resp = await client.get(ARCGIS_CITY_URL, params=params, timeout=120)
-    resp.raise_for_status()
-    return [f["attributes"] for f in resp.json().get("features", []) if f.get("attributes")]
+    """All cities, no geometry. Paginates via resultOffset — ArcGIS servers cap
+    resultRecordCount to their own maxRecordCount (often 1000-2000) regardless
+    of what we request, so a single request silently truncates the result."""
+    page_size = 2000
+    offset = 0
+    result: list[dict] = []
+    while True:
+        params = {
+            "where": "1=1",
+            "outFields": _OUTFIELDS,
+            "returnGeometry": "false",
+            "f": "json",
+            "resultRecordCount": str(page_size),
+            "resultOffset": str(offset),
+        }
+        resp = await client.get(ARCGIS_CITY_URL, params=params, timeout=120)
+        resp.raise_for_status()
+        data = resp.json()
+        page = [f["attributes"] for f in data.get("features", []) if f.get("attributes")]
+        result.extend(page)
+        if not data.get("exceededTransferLimit") and len(page) < page_size:
+            break
+        if not page:
+            break
+        offset += len(page)
+    return result
 
 
 async def _fetch_city_geometry(
@@ -229,7 +255,7 @@ async def _fetch_city_geometry(
     return None
 
 
-async def _fetch_all_async() -> list[dict]:
+async def _fetch_all_async(province_filter: str | None = None) -> list[dict]:
     limits = httpx.Limits(
         max_connections=_CONCURRENCY + 5,
         max_keepalive_connections=_CONCURRENCY,
@@ -240,6 +266,10 @@ async def _fetch_all_async() -> list[dict]:
         print("  Step 1: fetching city list (no geometry)...")
         city_attrs = await _fetch_city_list(client)
         print(f"  {len(city_attrs)} cities found")
+
+        if province_filter:
+            city_attrs = [a for a in city_attrs if _province_matches(a.get("PROVINCE"), province_filter)]
+            print(f"  filtered to {len(city_attrs)} cities matching province '{province_filter}'")
 
         sem = asyncio.Semaphore(_CONCURRENCY)
         pairs: list[dict] = []
@@ -279,22 +309,22 @@ async def _fetch_all_async() -> list[dict]:
     return result
 
 
-def fetch_arcgis_city_features() -> list[dict]:
-    return asyncio.run(_fetch_all_async())
+def fetch_arcgis_city_features(province_filter: str | None = None) -> list[dict]:
+    return asyncio.run(_fetch_all_async(province_filter))
 
 
 # ---------------------------------------------------------------------------
 # Seeder
 # ---------------------------------------------------------------------------
 
-def seed_all(skip_pmtiles: bool, db: Session) -> None:
+def seed_all(skip_pmtiles: bool, db: Session, province_filter: str | None = None) -> None:
     """
-    1. Fetch all city polygons from ArcGIS FeatureServer.
+    1. Fetch city polygons from ArcGIS FeatureServer (optionally scoped to one province).
     2. Upsert Region + Province stubs (no boundary, no pmtile_url).
     3. Upsert City rows with boundary geometry + per-city PMTile.
     """
     print("Fetching city boundaries from ArcGIS FeatureServer...")
-    features = fetch_arcgis_city_features()
+    features = fetch_arcgis_city_features(province_filter)
     print(f"\n{len(features)} features fetched")
 
     # --- Region + Province stubs from ArcGIS feature fields ---
@@ -432,7 +462,7 @@ def seed_all(skip_pmtiles: bool, db: Session) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
-def run(skip_pmtiles: bool = False) -> None:
+def run(skip_pmtiles: bool = False, province_filter: str | None = None) -> None:
     if not skip_pmtiles and not check_tippecanoe():
         print(
             "ERROR: tippecanoe not found.\n"
@@ -445,7 +475,7 @@ def run(skip_pmtiles: bool = False) -> None:
         sys.exit(1)
 
     with SessionLocal() as db:
-        seed_all(skip_pmtiles=skip_pmtiles, db=db)
+        seed_all(skip_pmtiles=skip_pmtiles, db=db, province_filter=province_filter)
 
     print("\nAll done.")
 
@@ -459,5 +489,9 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip tippecanoe + MinIO — seed geometry into DB only",
     )
+    parser.add_argument(
+        "--province", default=None, metavar="NAME",
+        help="Seed only cities whose PROVINCE field matches NAME (case/space-insensitive, e.g. 'Agusan del Norte')",
+    )
     args = parser.parse_args()
-    run(skip_pmtiles=args.skip_pmtiles)
+    run(skip_pmtiles=args.skip_pmtiles, province_filter=args.province)

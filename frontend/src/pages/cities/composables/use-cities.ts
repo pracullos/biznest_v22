@@ -1,10 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listCitiesCitiesGet, createCityCitiesPost } from '@networking/api/generated/cities/cities'
-import { createAssignmentLguAssignmentsPost } from '@networking/api/generated/lgu-assignments/lgu-assignments'
-import type { CityCreate } from '@networking/api/model/cityCreate'
-import type { CityResponse } from '@networking/api/model/cityResponse'
+import { useQueryClient } from '@tanstack/react-query'
+import { $api, fetchClient } from '@/lib/api-client'
+import type { CityResponse } from '@/types/api-aliases'
 import { useAuthContext } from '@/context/auth.context'
 import { useCityContext } from '@/context/city.context'
 
@@ -22,18 +20,14 @@ export function useCities() {
   const [search, setSearch] = useState('')
   const [page,   setPage]   = useState(1)
 
-  const { data: cities = [], isLoading } = useQuery({
-    queryKey: ['/cities/'],
-    queryFn:  () => listCitiesCitiesGet().then(r => r.data),
-  })
+  const { data: cities = [], isLoading } = $api.useQuery('get', '/cities/')
 
-  const createCity = useMutation({
-    mutationFn: (data: CityCreate) => createCityCitiesPost(data),
-    onSuccess: async res => {
-      await queryClient.invalidateQueries({ queryKey: ['/cities/'] })
+  const createCity = $api.useMutation('post', '/cities/', {
+    onSuccess: async city => {
+      await queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/cities/').queryKey })
       if (isLgu && auth) {
-        await createAssignmentLguAssignmentsPost({ user_id: auth.user.id, city_id: res.data.id })
-        await queryClient.invalidateQueries({ queryKey: ['/lgu-assignments/'] })
+        await fetchClient.POST('/lgu-assignments/', { body: { user_id: auth.user.id, city_id: city.id } })
+        await queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/lgu-assignments/').queryKey })
       }
     },
   })

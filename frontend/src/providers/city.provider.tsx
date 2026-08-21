@@ -1,17 +1,10 @@
 import { useEffect, useReducer, type PropsWithChildren } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
-import { getCityCitiesCityIdGet } from '@networking/api/generated/cities/cities'
+import { $api } from '@/lib/api-client'
 import { useAuthContext } from '@/context/auth.context'
 import { CityContext, type CityData } from '@/context/city.context'
-import type { CityResponse } from '@networking/api/model/cityResponse'
+import type { CityResponse } from '@/types/api-aliases'
 import type { BoundaryGeometry } from '@/engine/map.engine'
 import { boundaryReducer, BOUNDARY_INITIAL } from '@/reducer/boundary.reducer'
-
-interface CityGeometryResponse {
-  id: string
-  boundary: BoundaryGeometry | null
-}
 
 export function CityProvider({ children }: PropsWithChildren) {
   const { state, selectCity: authSelectCity } = useAuthContext()
@@ -24,27 +17,28 @@ export function CityProvider({ children }: PropsWithChildren) {
 
   const [boundaryState, dispatchBoundary] = useReducer(boundaryReducer, BOUNDARY_INITIAL)
 
-  const { data: selectedCity = null } = useQuery({
-    queryKey: ['/cities/', cityId],
-    queryFn:  () => getCityCitiesCityIdGet(cityId!).then(r => r.data),
+  const { data: selectedCity = null } = $api.useQuery('get', '/cities/{city_id}', {
+    params: { path: { city_id: cityId! } },
+  }, {
     enabled:  !!cityId,
     staleTime: 5 * 60 * 1000,
   })
 
   const {
-    data: cityBoundary = null,
+    data: cityGeometry,
     isLoading: isBoundaryFetching,
     isError:   isBoundaryError,
     isSuccess: isBoundarySuccess,
     error:     boundaryQueryError,
-  } = useQuery({
-    queryKey: ['/cities/', cityId, 'geometry'],
-    queryFn:  () =>
-      axios.get<CityGeometryResponse>(`/cities/${cityId}/geometry`).then(r => r.data.boundary),
+  } = $api.useQuery('get', '/cities/{city_id}/geometry', {
+    params: { path: { city_id: cityId! } },
+  }, {
     enabled:  !!cityId,
     staleTime: 60 * 60 * 1000,
     retry: 1,
   })
+
+  const cityBoundary = (cityGeometry?.boundary as BoundaryGeometry | null) ?? null
 
   // Single effect owns all reducer transitions.
   //

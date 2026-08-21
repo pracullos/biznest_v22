@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, PenLine, ScanText, Upload, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Polygon } from 'geojson'
-import axios from 'axios'
+import { fetchClient, unwrap } from '@/lib/api-client'
 import { Map } from '@/components/map'
 import { MapContext, useMapContext } from '@/context/map.context'
 import type { MapEngine } from '@/engine/map.engine'
@@ -90,12 +90,13 @@ export function HazardPage() {
   async function saveHazardGeometry(geometry: Polygon) {
     await saveWithDispatch(
       async () => {
-        await axios.post(`/cities/${cityId}/hazards`, {
-          hazard_type: drawState.hazardType, scenario: drawState.scenario,
-          severity: drawState.severity, geometry,
-        })
-        const params = new URLSearchParams({ hazard_type: drawState.hazardType, scenario: drawState.scenario })
-        await axios.post(`/cities/${cityId}/hazards/regenerate-pmtiles?${params}`)
+        unwrap(await fetchClient.POST('/cities/{city_id}/hazards', {
+          params: { path: { city_id: cityId! } },
+          body: { hazard_type: drawState.hazardType, scenario: drawState.scenario, severity: drawState.severity, geometry: geometry as unknown as Record<string, unknown> },
+        }))
+        unwrap(await fetchClient.POST('/cities/{city_id}/hazards/regenerate-pmtiles', {
+          params: { path: { city_id: cityId! }, query: { hazard_type: drawState.hazardType, scenario: drawState.scenario ?? '' } },
+        }))
       },
       dispatchDraw,
       () => draw.clearDrawn(),
@@ -114,12 +115,13 @@ export function HazardPage() {
     dispatchUpload({ type: 'SAVE_START' })
     await saveWithDispatch(
       async () => {
-        await axios.post(`/cities/${cityId}/hazards`, {
-          hazard_type: uploadState.hazardType, scenario: uploadState.scenario,
-          severity: uploadState.severity, geometry: uploadState.geometry,
-        })
-        const params = new URLSearchParams({ hazard_type: uploadState.hazardType, scenario: uploadState.scenario })
-        await axios.post(`/cities/${cityId}/hazards/regenerate-pmtiles?${params}`)
+        unwrap(await fetchClient.POST('/cities/{city_id}/hazards', {
+          params: { path: { city_id: cityId! } },
+          body: { hazard_type: uploadState.hazardType, scenario: uploadState.scenario, severity: uploadState.severity, geometry: uploadState.geometry as unknown as Record<string, unknown> },
+        }))
+        unwrap(await fetchClient.POST('/cities/{city_id}/hazards/regenerate-pmtiles', {
+          params: { path: { city_id: cityId! }, query: { hazard_type: uploadState.hazardType, scenario: uploadState.scenario ?? '' } },
+        }))
       },
       dispatchUpload,
     )

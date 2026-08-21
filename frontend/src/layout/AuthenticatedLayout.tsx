@@ -6,12 +6,11 @@ import {
 } from "@tanstack/react-router";
 import { LogOut, MapPin, ChevronsUpDown, Check, Search } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "@/context/auth.context";
 import { useCityContext } from "@/context/city.context";
 import { useRole, useCityIds, useIsRole } from "@/hooks/use-permission";
-import { listCitiesCitiesGet } from "@networking/api/generated/cities/cities";
-import type { CityResponse } from "@networking/api/model/cityResponse";
+import { $api } from "@/lib/api-client";
+import type { CityResponse } from "@/types/api-aliases";
 import {
   Sidebar,
   SidebarContent,
@@ -87,9 +86,7 @@ function CitySwitcher() {
   const { selectedCity, selectCity } = useCityContext();
   const navigate = useNavigate();
 
-  const { data: allCities = [] } = useQuery({
-    queryKey: ["/cities/"],
-    queryFn: () => listCitiesCitiesGet().then((r) => r.data),
+  const { data: allCities = [] } = $api.useQuery("get", "/cities/", undefined, {
     enabled: cityIds.length > 0,
   });
 

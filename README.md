@@ -9,10 +9,9 @@ Geo-intelligence platform for Philippine city investment analysis. Multi-tenant,
 ## Repository structure
 
 ```
-frontend/            React 19 + Vite + TanStack Router + MapLibre GL
+frontend/            React 19 + Vite + TanStack Router + MapLibre GL — talks to the backend
+                     directly via a typed fetch client (openapi-fetch + openapi-react-query)
 backend/             FastAPI + SQLAlchemy + PostGIS + MinIO
-packages/
-  api/               Auto-generated React Query + Axios client (Orval)
 docker-compose.yaml  Postgres, MinIO, Redis, backend, frontend
 ```
 
@@ -65,7 +64,7 @@ pnpm -F frontend build      # runs tsc + vite build
 pnpm -F frontend lint
 ```
 
-### 6. Regenerate API client
+### 6. Regenerate API types
 
 Run this after any backend route or schema change. The backend must be running.
 
@@ -73,7 +72,7 @@ Run this after any backend route or schema change. The backend must be running.
 pnpm generate:api
 ```
 
-This pulls `http://localhost:8000/openapi.json` via Orval and writes React Query hooks + TypeScript types into `packages/api/generated/`.
+This pulls `http://127.0.0.1:8000/openapi.json` via `openapi-typescript` and writes `frontend/src/types/api.d.ts` (`paths`/`components` types, committed to git). No hooks are generated — the frontend calls the backend directly through `frontend/src/lib/api-client.ts` (`fetchClient` / `$api`, built on `openapi-fetch` + `openapi-react-query`).
 
 ---
 

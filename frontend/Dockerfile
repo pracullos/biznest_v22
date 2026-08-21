@@ -3,8 +3,7 @@
 FROM node:22-slim AS build
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages ./packages
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json tsconfig.json ./
 COPY frontend ./frontend
 
 RUN corepack enable && pnpm install --frozen-lockfile

@@ -1,10 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { listCitiesCitiesGet, createCityCitiesPost } from '@networking/api/generated/cities/cities'
-import { myAccessCityAccessMeGet, grantAccessCityAccessPost } from '@networking/api/generated/city-access/city-access'
-import { listAssignmentsLguAssignmentsGet, createAssignmentLguAssignmentsPost } from '@networking/api/generated/lgu-assignments/lgu-assignments'
-import { getMySubscriptionSubscriptionsMeGet } from '@networking/api/generated/subscriptions/subscriptions'
-import type { CityCreate } from '@networking/api/model/cityCreate'
+import { $api, fetchClient, unwrap } from '@/lib/api-client'
 import { useAuthContext } from '@/context/auth.context'
 
 export function useCitySetup() {
@@ -13,26 +9,17 @@ export function useCitySetup() {
   const queryClient = useQueryClient()
   const router = useRouter()
 
-  const { data: allCities = [], isLoading: citiesLoading } = useQuery({
-    queryKey: ['/cities/'],
-    queryFn: () => listCitiesCitiesGet().then(r => r.data),
-  })
+  const { data: allCities = [], isLoading: citiesLoading } = $api.useQuery('get', '/cities/')
 
-  const { data: myAccess = [], isLoading: accessLoading } = useQuery({
-    queryKey: ['/city-access/me'],
-    queryFn: () => myAccessCityAccessMeGet().then(r => r.data),
+  const { data: myAccess = [], isLoading: accessLoading } = $api.useQuery('get', '/city-access/me', undefined, {
     enabled: auth?.role_name === 'investor',
   })
 
-  const { data: myAssignments = [], isLoading: assignmentsLoading } = useQuery({
-    queryKey: ['/lgu-assignments/'],
-    queryFn: () => listAssignmentsLguAssignmentsGet().then(r => r.data),
+  const { data: myAssignments = [], isLoading: assignmentsLoading } = $api.useQuery('get', '/lgu-assignments/', undefined, {
     enabled: auth?.role_name === 'lgu_admin',
   })
 
-  const { data: subscription } = useQuery({
-    queryKey: ['/subscriptions/me'],
-    queryFn: () => getMySubscriptionSubscriptionsMeGet().then(r => r.data),
+  const { data: subscription } = $api.useQuery('get', '/subscriptions/me', undefined, {
     enabled: auth?.role_name === 'investor',
     retry: false,
   })
@@ -59,32 +46,31 @@ export function useCitySetup() {
   }
 
   // ── Mutations ──────────────────────────────────────────────────────────────
+  // subscribeCity/claimCity take a bare cityId (matching CityCard's onAction contract)
 
   const subscribeCity = useMutation({
-    mutationFn: (cityId: string) =>
-      grantAccessCityAccessPost({ user_id: auth!.user.id, city_id: cityId }),
+    mutationFn: async (cityId: string) =>
+      unwrap(await fetchClient.POST('/city-access/', { body: { user_id: auth!.user.id, city_id: cityId } })),
     onSuccess: async (_, cityId) => {
-      await queryClient.invalidateQueries({ queryKey: ['/city-access/me'] })
+      await queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/city-access/me').queryKey })
       await enterCity(cityId)
     },
   })
 
   const claimCity = useMutation({
-    mutationFn: (cityId: string) =>
-      createAssignmentLguAssignmentsPost({ user_id: auth!.user.id, city_id: cityId }),
+    mutationFn: async (cityId: string) =>
+      unwrap(await fetchClient.POST('/lgu-assignments/', { body: { user_id: auth!.user.id, city_id: cityId } })),
     onSuccess: async (_, cityId) => {
-      await queryClient.invalidateQueries({ queryKey: ['/lgu-assignments/'] })
+      await queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/lgu-assignments/').queryKey })
       await enterCity(cityId)
     },
   })
 
-  const createCity = useMutation({
-    mutationFn: (data: CityCreate) => createCityCitiesPost(data),
-    onSuccess: async res => {
-      await queryClient.invalidateQueries({ queryKey: ['/cities/'] })
-      const newCity = res.data
-      await createAssignmentLguAssignmentsPost({ user_id: auth!.user.id, city_id: newCity.id })
-      await queryClient.invalidateQueries({ queryKey: ['/lgu-assignments/'] })
+  const createCity = $api.useMutation('post', '/cities/', {
+    onSuccess: async newCity => {
+      await queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/cities/').queryKey })
+      await fetchClient.POST('/lgu-assignments/', { body: { user_id: auth!.user.id, city_id: newCity.id } })
+      await queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/lgu-assignments/').queryKey })
       await enterCity(newCity.id)
     },
   })

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Sparkles, X, Send, RotateCcw, MapPin } from 'lucide-react'
-import axios from 'axios'
+import { fetchClient, unwrap } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -109,14 +109,14 @@ export function MessageWidget() {
     setError(null)
 
     try {
-      const res = await axios.post<{ answer: string; city_name: string }>(
-        `/cities/${selectedCity.id}/analyze`,
-        { question },
-      )
+      const res = unwrap(await fetchClient.POST('/cities/{city_id}/analyze', {
+        params: { path: { city_id: selectedCity.id } },
+        body: { question },
+      }))
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        text: res.data.answer,
+        text: res.answer,
       }
       setMessages(prev => [...prev, aiMsg])
     } catch {

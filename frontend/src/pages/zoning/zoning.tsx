@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowLeft, PenLine, ScanText, Upload, X } from 'lucide-react'
 import type { Polygon } from 'geojson'
-import axios from 'axios'
+import { fetchClient, unwrap } from '@/lib/api-client'
 import { Map } from '@/components/map'
 import { MapContext, useMapContext } from '@/context/map.context'
 import type { MapEngine } from '@/engine/map.engine'
@@ -62,16 +62,21 @@ export function ZoningPage() {
   async function saveZoningGeometry(geometry: Polygon) {
     await saveWithDispatch(
         async () => {
-          await axios.post(`/cities/${cityId}/zoning`, {
-            city_id:       cityId,
-            zone_type:     drawState.zoneType,
-            color_hex:     ZONE_TYPE_COLORS[drawState.zoneType] ?? null,
-            severity:      drawState.severity,
-            scenario:      drawState.scenario || null,
-            scenario_type: drawState.scenarioType || null,
-            geometry,
-          })
-          await axios.post(`/cities/${cityId}/zoning/regenerate-pmtiles`)
+          unwrap(await fetchClient.POST('/cities/{city_id}/zoning', {
+            params: { path: { city_id: cityId! } },
+            body: {
+              city_id:       cityId!,
+              zone_type:     drawState.zoneType,
+              color_hex:     ZONE_TYPE_COLORS[drawState.zoneType] ?? null,
+              severity:      drawState.severity,
+              scenario:      drawState.scenario || null,
+              scenario_type: drawState.scenarioType || null,
+              geometry: geometry as unknown as Record<string, unknown>,
+            },
+          }))
+          unwrap(await fetchClient.POST('/cities/{city_id}/zoning/regenerate-pmtiles', {
+            params: { path: { city_id: cityId! } },
+          }))
         },
         dispatchDraw,
         () => draw.clearDrawn(),
@@ -116,16 +121,21 @@ export function ZoningPage() {
     dispatchUpload({ type: 'SAVE_START' })
     await saveWithDispatch(
       async () => {
-        await axios.post(`/cities/${cityId}/zoning`, {
-          city_id:       cityId,
-          zone_type:     uploadState.zoneType,
-          color_hex:     ZONE_TYPE_COLORS[uploadState.zoneType] ?? null,
-          severity:      uploadState.severity,
-          scenario:      uploadState.scenario || null,
-          scenario_type: uploadState.scenarioType || null,
-          geometry:      uploadState.geometry,
-        })
-        await axios.post(`/cities/${cityId}/zoning/regenerate-pmtiles`)
+        unwrap(await fetchClient.POST('/cities/{city_id}/zoning', {
+          params: { path: { city_id: cityId! } },
+          body: {
+            city_id:       cityId!,
+            zone_type:     uploadState.zoneType,
+            color_hex:     ZONE_TYPE_COLORS[uploadState.zoneType] ?? null,
+            severity:      uploadState.severity,
+            scenario:      uploadState.scenario || null,
+            scenario_type: uploadState.scenarioType || null,
+            geometry:      uploadState.geometry as unknown as Record<string, unknown>,
+          },
+        }))
+        unwrap(await fetchClient.POST('/cities/{city_id}/zoning/regenerate-pmtiles', {
+          params: { path: { city_id: cityId! } },
+        }))
       },
       dispatchUpload,
     )
