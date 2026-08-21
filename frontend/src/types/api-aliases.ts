@@ -1,0 +1,21 @@
+import type { components } from '@/types/api'
+
+type Schemas = components['schemas']
+
+export type UserResponse = Schemas['UserResponse']
+export type CityResponse = Schemas['CityResponse']
+export type CityCreate = Schemas['CityCreate']
+export type CityStatsResponse = Schemas['CityStatsResponse']
+export type AuthResponse = Schemas['AuthResponse']
+export type CitySelectResponse = Schemas['CitySelectResponse']
+export type ZoningAreaSummary = Schemas['ZoningAreaSummary']
+export type ZoningProcessResponse = Schemas['ZoningProcessResponse']
+export type HazardAreaSummary = Schemas['HazardAreaSummary']
+export type LguInviteResponse = Schemas['LguInviteResponse']
+export type RoleResponse = Schemas['RoleResponse']
+export type RoleWithPermissionsResponse = Schemas['RoleWithPermissionsResponse']
+export type PermissionResponse = Schemas['PermissionResponse']
+export type SubscriptionPlanResponse = Schemas['SubscriptionPlanResponse']
+export type LocationAnalyzeResponse = Schemas['LocationAnalyzeResponse']
+export type ZoneType = Schemas['ZoneType']
+export type ScenarioType = Schemas['ScenarioType']

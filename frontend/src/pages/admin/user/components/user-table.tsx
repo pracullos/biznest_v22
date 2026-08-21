@@ -9,7 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck } from 'lucide-react'
-import type { UserResponse } from '@networking/api/model'
+import type { UserResponse } from '@/types/api-aliases'
 
 interface Props {
   users: UserResponse[]

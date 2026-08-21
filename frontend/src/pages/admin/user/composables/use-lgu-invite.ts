@@ -1,17 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import axios from 'axios'
-import type { AxiosError } from 'axios'
-import type { LguInviteResponse } from '@networking/api/model/lguInviteResponse'
-
-interface RegionOption { id: string; name: string }
-interface ProvinceOption { id: string; name: string }
-interface CityOption { id: string; name: string }
+import { $api } from '@/lib/api-client'
+import type { LguInviteResponse } from '@/types/api-aliases'
 
 function getErrorMessage(err: unknown): string {
-  const axiosErr = err as AxiosError<{ detail?: string | Array<{ msg: string }> }>
-  const detail = axiosErr?.response?.data?.detail
+  const detail = (err as { detail?: string | Array<{ msg: string }> } | undefined)?.detail
   if (Array.isArray(detail)) return detail.map(e => e.msg).join('; ')
   if (typeof detail === 'string') return detail
   return 'Something went wrong. Please try again.'
@@ -39,34 +32,26 @@ export function useLguInvite() {
     setCityIdState(id)
   }
 
-  const { data: regions = [], isLoading: regionsLoading } = useQuery<RegionOption[]>({
-    queryKey: ['/regions/'],
-    queryFn: () =>
-      axios.get<RegionOption[]>('/regions/').then(r => r.data),
-  })
+  const { data: regions = [], isLoading: regionsLoading } = $api.useQuery('get', '/regions/')
 
-  const { data: provinces = [], isLoading: provincesLoading } = useQuery<ProvinceOption[]>({
-    queryKey: ['/regions', regionId, 'provinces'],
-    queryFn: () =>
-      axios.get<ProvinceOption[]>(`/regions/${regionId}/provinces`).then(r => r.data),
+  const { data: provinces = [], isLoading: provincesLoading } = $api.useQuery('get', '/regions/{region_id}/provinces', {
+    params: { path: { region_id: regionId ?? '' } },
+  }, {
     enabled: !!regionId,
   })
 
-  const { data: cities = [], isLoading: citiesLoading } = useQuery<CityOption[]>({
-    queryKey: ['/provinces', provinceId, 'cities'],
-    queryFn: () =>
-      axios.get<CityOption[]>(`/provinces/${provinceId}/cities`).then(r => r.data),
+  const { data: cities = [], isLoading: citiesLoading } = $api.useQuery('get', '/provinces/{province_id}/cities', {
+    params: { path: { province_id: provinceId ?? '' } },
+  }, {
     enabled: !!provinceId,
   })
 
   const {
-    mutateAsync: sendInvite,
+    mutateAsync: sendInviteRaw,
     isPending: sending,
     error: mutationError,
     reset: resetMutation,
-  } = useMutation({
-    mutationFn: ({ email, city_id }: { email: string; city_id: string }) =>
-      axios.post<LguInviteResponse>('/users/lgu/invite', { email, city_id }).then(r => r.data),
+  } = $api.useMutation('post', '/users/lgu/invite', {
     onSuccess: (data) => setResult(data),
   })
 
@@ -75,7 +60,7 @@ export function useLguInvite() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!cityId) return
-    await sendInvite({ email, city_id: cityId })
+    await sendInviteRaw({ body: { email, city_id: cityId } })
   }
 
   function reset() {

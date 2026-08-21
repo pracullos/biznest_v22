@@ -1,19 +1,11 @@
 import { useReducer, useEffect, useRef, type PropsWithChildren } from 'react'
 import { flushSync } from 'react-dom'
-import axios from 'axios'
-import { tokenManager } from '@/lib/axios'
-import { myAccessCityAccessMeGet } from '@networking/api/generated/city-access/city-access'
-import {
-  listAssignmentsLguAssignmentsGet,
-  getCityByUserLguAssignmentsUserUserIdCityGet,
-} from '@networking/api/generated/lgu-assignments/lgu-assignments'
-import { getRoleRolesRoleIdGet } from '@networking/api/generated/roles/roles'
+import { fetchClient, unwrap } from '@/lib/api-client'
+import { tokenManager } from '@/lib/token-manager'
+import { ensureRefreshed, onRefreshFailure } from '@/lib/auth-refresh'
 import { router } from '@/router'
 import { AuthContext, type AuthData, type AuthState } from '@/context/auth.context'
-import type { UserResponse } from '@networking/api/model/userResponse'
-import type { CityResponse } from '@networking/api/model/cityResponse'
-import type { AuthResponse } from '@networking/api/model/authResponse'
-import type { CitySelectResponse } from '@networking/api/model/citySelectResponse'
+import type { UserResponse, CityResponse } from '@/types/api-aliases'
 import { ALL_PERMISSIONS, ROLE_PERMISSIONS } from '@/config/permissions'
 import { authReducer } from '@/reducer/auth.reducer'
 import {
@@ -22,15 +14,10 @@ import {
   postAuthRoute,
 } from '@/utils/jwt.utils'
 
-// Paths that should not trigger the 401 → refresh interceptor
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/users/lgu/register']
-
 const CITY_ID_KEY = 'biznest:city_id'
 
 // Refresh this many ms before the access token actually expires
 const PROACTIVE_REFRESH_LEAD_MS = 60_000
-
-type QueueItem = { resolve: (value: unknown) => void; reject: (err: unknown) => void }
 
 async function resolveAuth(user: UserResponse) {
   const { role_name, role_id } = resolveRoleFromToken()
@@ -40,8 +27,8 @@ async function resolveAuth(user: UserResponse) {
     permissions = ALL_PERMISSIONS
   } else if (role_id) {
     try {
-      const roleRes = await getRoleRolesRoleIdGet(role_id)
-      permissions = (roleRes.data.permissions ?? []).map(p => p.name)
+      const role = unwrap(await fetchClient.GET('/roles/{role_id}', { params: { path: { role_id } } }))
+      permissions = (role.permissions ?? []).map(p => p.name)
     } catch {
       permissions = role_name ? (ROLE_PERMISSIONS[role_name] ?? []) : []
     }
@@ -53,13 +40,14 @@ async function resolveAuth(user: UserResponse) {
   let lgu_city: CityResponse | undefined
   try {
     if (role_name === 'investor') {
-      const accessRes = await myAccessCityAccessMeGet()
-      city_ids = accessRes.data.map(a => a.city_id)
+      const access = unwrap(await fetchClient.GET('/city-access/me'))
+      city_ids = access.map(a => a.city_id)
     } else if (role_name === 'lgu_admin') {
-      const assignRes = await listAssignmentsLguAssignmentsGet()
-      city_ids = assignRes.data.filter(a => a.user_id === user.id).map(a => a.city_id)
-      const cityRes = await getCityByUserLguAssignmentsUserUserIdCityGet(user.id)
-      lgu_city = cityRes.data
+      const assignments = unwrap(await fetchClient.GET('/lgu-assignments/'))
+      city_ids = assignments.filter(a => a.user_id === user.id).map(a => a.city_id)
+      lgu_city = unwrap(await fetchClient.GET('/lgu-assignments/user/{user_id}/city', {
+        params: { path: { user_id: user.id } },
+      }))
     }
   } catch {
     // non-critical — proceed with empty city list
@@ -71,9 +59,7 @@ async function resolveAuth(user: UserResponse) {
 export function AuthProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(authReducer, { state: 'BOOT' } as AuthState)
 
-  const isRefreshingRef    = useRef(false)
   const isRestoringRef     = useRef(true)   // true during initial session restore
-  const refreshQueueRef    = useRef<QueueItem[]>([])
   const refreshTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scheduleRefreshRef = useRef<((token: string) => void) | null>(null)
 
@@ -88,15 +74,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function doProactiveRefresh() {
     try {
-      const res = await axios.post<AuthResponse>('/auth/refresh')
-      tokenManager.set(res.data.access_token)
-      scheduleRefreshRef.current?.(res.data.access_token)
+      const token = await ensureRefreshed()
+      scheduleRefreshRef.current?.(token)
     } catch {
-      clearRefreshTimer()
-      tokenManager.clear()
-      sessionStorage.removeItem(CITY_ID_KEY)
-      dispatch({ type: 'UNAUTHENTICATED' })
-      void router.navigate({ to: '/login' })
+      // onRefreshFailure (registered below) already ran the sign-out side effects
     }
   }
 
@@ -114,61 +95,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   scheduleRefreshRef.current = scheduleTokenRefresh
 
-  // ── 401 interceptor + session restore ─────────────────────────────────────
+  // ── Refresh-failure handler + session restore ─────────────────────────────
 
   useEffect(() => {
-    const interceptorId = axios.interceptors.response.use(
-      (res) => res,
-      async (error) => {
-        const originalRequest = error.config
-        const isAuthPath = AUTH_PATHS.some(p => (originalRequest?.url as string | undefined)?.includes(p))
-
-        if (error.response?.status !== 401 || isAuthPath || originalRequest?._retry) {
-          return Promise.reject(error)
-        }
-
-        if (isRefreshingRef.current) {
-          return new Promise((resolve, reject) => {
-            refreshQueueRef.current.push({
-              resolve: () => resolve(axios(originalRequest)),
-              reject,
-            })
-          })
-        }
-
-        originalRequest._retry = true
-        isRefreshingRef.current = true
-
-        try {
-          const refreshRes = await axios.post<AuthResponse>('/auth/refresh')
-          tokenManager.set(refreshRes.data.access_token)
-          scheduleRefreshRef.current?.(refreshRes.data.access_token)
-          refreshQueueRef.current.forEach(q => q.resolve(undefined))
-          refreshQueueRef.current = []
-          return axios(originalRequest)
-        } catch (refreshError) {
-          refreshQueueRef.current.forEach(q => q.reject(refreshError))
-          refreshQueueRef.current = []
-          clearRefreshTimer()
-          tokenManager.clear()
-          sessionStorage.removeItem(CITY_ID_KEY)
-          dispatch({ type: 'UNAUTHENTICATED' })
-          // Don't redirect during initial restore — the user may be on a public
-          // page (e.g. /lgu/register) that is valid without authentication.
-          if (!isRestoringRef.current) {
-            void router.navigate({ to: '/login' })
-          }
-          return Promise.reject(refreshError)
-        } finally {
-          isRefreshingRef.current = false
-        }
+    onRefreshFailure(() => {
+      clearRefreshTimer()
+      tokenManager.clear()
+      sessionStorage.removeItem(CITY_ID_KEY)
+      dispatch({ type: 'UNAUTHENTICATED' })
+      // Don't redirect during initial restore — the user may be on a public
+      // page (e.g. /lgu/register) that is valid without authentication.
+      if (!isRestoringRef.current) {
+        void router.navigate({ to: '/login' })
       }
-    )
+    })
 
     void restoreSession()
 
     return () => {
-      axios.interceptors.response.eject(interceptorId)
       clearRefreshTimer()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,8 +124,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isRestoringRef.current = true
     dispatch({ type: 'RESTORE_START' })
     try {
-      const userRes = await axios.get<UserResponse>('/auth/me')
-      const result  = await resolveAuth(userRes.data)
+      const user   = unwrap(await fetchClient.GET('/auth/me'))
+      const result = await resolveAuth(user)
 
       let city_id: string | undefined
 
@@ -189,8 +133,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const savedCityId = sessionStorage.getItem(CITY_ID_KEY)
         if (savedCityId && result.city_ids.includes(savedCityId)) {
           try {
-            const selectRes = await axios.post<CitySelectResponse>(`/city-access/select/${savedCityId}`)
-            tokenManager.set(selectRes.data.access_token)
+            const select = unwrap(await fetchClient.POST('/city-access/select/{city_id}', {
+              params: { path: { city_id: savedCityId } },
+            }))
+            tokenManager.set(select.access_token)
             city_id = savedCityId
           } catch {
             sessionStorage.removeItem(CITY_ID_KEY)
@@ -216,13 +162,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   async function signIn(email: string, password: string) {
-    const loginRes = await axios.post<AuthResponse>('/auth/login', { email, password })
-    tokenManager.set(loginRes.data.access_token)
-    scheduleTokenRefresh(loginRes.data.access_token)
-    const userRes = await axios.get<UserResponse>('/auth/me')
-    const result  = await resolveAuth(userRes.data)
+    const login = unwrap(await fetchClient.POST('/auth/login', { body: { email, password } }))
+    tokenManager.set(login.access_token)
+    scheduleTokenRefresh(login.access_token)
+    const user   = unwrap(await fetchClient.GET('/auth/me'))
+    const result = await resolveAuth(user)
     sessionStorage.removeItem(CITY_ID_KEY)
-    const target = postAuthRoute(result.role_name, userRes.data.is_superuser)
+    const target = postAuthRoute(result.role_name, user.is_superuser)
     flushSync(() => dispatch({ type: 'AUTH_SUCCESS', ...result }))
     await router.navigate({ to: target as never })
   }
@@ -233,13 +179,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     password: string,
     role: 'investor' | 'lgu_admin' = 'investor',
   ) {
-    const registerRes = await axios.post<AuthResponse>('/auth/register', { email, full_name, password, role_name: role })
-    tokenManager.set(registerRes.data.access_token)
-    scheduleTokenRefresh(registerRes.data.access_token)
-    const userRes = await axios.get<UserResponse>('/auth/me')
-    const result  = await resolveAuth(userRes.data)
+    const registered = unwrap(await fetchClient.POST('/auth/register', {
+      body: { email, full_name, password, role_name: role },
+    }))
+    tokenManager.set(registered.access_token)
+    scheduleTokenRefresh(registered.access_token)
+    const user   = unwrap(await fetchClient.GET('/auth/me'))
+    const result = await resolveAuth(user)
     sessionStorage.removeItem(CITY_ID_KEY)
-    const target = postAuthRoute(result.role_name, userRes.data.is_superuser)
+    const target = postAuthRoute(result.role_name, user.is_superuser)
     flushSync(() => dispatch({ type: 'AUTH_SUCCESS', ...result }))
     await router.navigate({ to: target as never })
   }
@@ -248,7 +196,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dispatch({ type: 'SIGN_OUT' })
     clearRefreshTimer()
     try {
-      await axios.post('/auth/logout')
+      await fetchClient.POST('/auth/logout')
     } finally {
       tokenManager.clear()
       sessionStorage.removeItem(CITY_ID_KEY)
@@ -272,9 +220,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (state.state !== 'AUTHENTICATED') return
 
     if (state.role_name === 'investor') {
-      const res = await axios.post<CitySelectResponse>(`/city-access/select/${cityId}`)
-      tokenManager.set(res.data.access_token)
-      scheduleTokenRefresh(res.data.access_token)
+      const select = unwrap(await fetchClient.POST('/city-access/select/{city_id}', {
+        params: { path: { city_id: cityId } },
+      }))
+      tokenManager.set(select.access_token)
+      scheduleTokenRefresh(select.access_token)
     }
 
     sessionStorage.setItem(CITY_ID_KEY, cityId)

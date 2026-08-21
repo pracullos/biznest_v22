@@ -1,38 +1,40 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAllUsersUsersGet } from '@networking/api/generated/users/users'
-import { listRolesRolesGet } from '@networking/api/generated/roles/roles'
-import {
-  assignRoleUserRolesPost,
-  removeRoleUserRolesDelete,
-  getUserRolesUserRolesUserIdGet,
-} from '@networking/api/generated/user-roles/user-roles'
+import { useQueryClient } from '@tanstack/react-query'
+import { $api } from '@/lib/api-client'
 
 export function useUserManagement() {
   const queryClient = useQueryClient()
 
-  const { data: usersData, isLoading: usersLoading } = useAllUsersUsersGet()
-  const users = usersData?.data ?? []
+  const { data: users = [], isLoading: usersLoading } = $api.useQuery('get', '/users/')
 
-  const { data: roles = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ['/roles/'],
-    queryFn: () => listRolesRolesGet().then(r => r.data),
-  })
+  const { data: roles = [], isLoading: rolesLoading } = $api.useQuery('get', '/roles/')
 
-  const { mutateAsync: assignRole, isPending: assigning } = useMutation({
-    mutationFn: (data: { user_id: string; role_id: string }) =>
-      assignRoleUserRolesPost(data),
+  const assignMutation = $api.useMutation('post', '/user-roles/', {
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [`/user-roles/${vars.user_id}`] })
+      queryClient.invalidateQueries({
+        queryKey: $api.queryOptions('get', '/user-roles/{user_id}', {
+          params: { path: { user_id: vars.body.user_id } },
+        }).queryKey,
+      })
     },
   })
 
-  const { mutateAsync: revokeRole, isPending: revoking } = useMutation({
-    mutationFn: (data: { user_id: string; role_id: string }) =>
-      removeRoleUserRolesDelete(data),
+  const revokeMutation = $api.useMutation('delete', '/user-roles/', {
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [`/user-roles/${vars.user_id}`] })
+      queryClient.invalidateQueries({
+        queryKey: $api.queryOptions('get', '/user-roles/{user_id}', {
+          params: { path: { user_id: vars.body.user_id } },
+        }).queryKey,
+      })
     },
   })
+
+  async function assignRole(data: { user_id: string; role_id: string }) {
+    return assignMutation.mutateAsync({ body: data })
+  }
+
+  async function revokeRole(data: { user_id: string; role_id: string }) {
+    return revokeMutation.mutateAsync({ body: data })
+  }
 
   return {
     users,
@@ -40,15 +42,15 @@ export function useUserManagement() {
     loading: usersLoading || rolesLoading,
     assignRole,
     revokeRole,
-    assigning,
-    revoking,
+    assigning: assignMutation.isPending,
+    revoking: revokeMutation.isPending,
   }
 }
 
 export function useUserRoles(userId: string | null) {
-  return useQuery({
-    queryKey: [`/user-roles/${userId}`],
-    queryFn: () => getUserRolesUserRolesUserIdGet(userId!).then(r => r.data),
+  return $api.useQuery('get', '/user-roles/{user_id}', {
+    params: { path: { user_id: userId ?? '' } },
+  }, {
     enabled: !!userId,
   })
 }

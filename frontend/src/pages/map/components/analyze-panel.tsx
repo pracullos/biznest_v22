@@ -10,8 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMapContext } from '@/context/map.context'
 import { useCityContext } from '@/context/city.context'
 import { useDrawPolygon } from '@/composable/map.composable'
-import { useAnalyzeLocationCitiesCityIdAnalyzeLocationPost } from '@networking/api/generated/analyze/analyze'
-import type { LocationAnalyzeResponse } from '@networking/api/model/locationAnalyzeResponse'
+import { $api } from '@/lib/api-client'
+import type { LocationAnalyzeResponse } from '@/types/api-aliases'
 import type { Polygon } from 'geojson'
 
 type InputMode = 'point' | 'polygon'
@@ -44,20 +44,18 @@ export function AnalyzePanel() {
     setPhase('ready')
   })
 
-  const { mutate } = useAnalyzeLocationCitiesCityIdAnalyzeLocationPost({
-    mutation: {
-      onSuccess: (res) => {
-        setResult(res.data)
-        setPhase('done')
-      },
-      onError: (err) => {
-        const data = err.response?.data as { detail?: string | { msg: string }[] } | undefined
-        const detail = Array.isArray(data?.detail)
-          ? (data.detail as { msg: string }[]).map((d) => d.msg).join('; ')
-          : (data?.detail ?? err.message)
-        setErrorMsg(String(detail))
-        setPhase('error')
-      },
+  const { mutate } = $api.useMutation('post', '/cities/{city_id}/analyze/location', {
+    onSuccess: (res) => {
+      setResult(res)
+      setPhase('done')
+    },
+    onError: (err) => {
+      const detail = err && typeof err === 'object' && 'detail' in err
+        ? (err as { detail?: string | { msg: string }[] }).detail
+        : undefined
+      const msg = Array.isArray(detail) ? detail.map((d) => d.msg).join('; ') : (detail ?? 'Analysis failed')
+      setErrorMsg(String(msg))
+      setPhase('error')
     },
   })
 
@@ -145,11 +143,11 @@ export function AnalyzePanel() {
     if (!geometry) return
     setPhase('analyzing')
     mutate({
-      cityId: selectedCity.id,
-      data: {
+      params: { path: { city_id: selectedCity.id } },
+      body: {
         geometry: geometry as { [key: string]: unknown },
         question: question.trim() || null,
-        buffer_meters: inputMode === 'point' ? bufferMeters : undefined,
+        buffer_meters: bufferMeters,
       },
     })
   }, [selectedCity, inputMode, pointCoords, polyGeom, question, bufferMeters, mutate])

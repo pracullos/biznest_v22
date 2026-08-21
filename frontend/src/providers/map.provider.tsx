@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useReducer, useRef, type PropsWithChildren } from 'react'
 import { MapContext, type LightPreset, type ClickedZone } from '@/context/map.context'
 import { useCityContext } from '@/context/city.context'
-import { listHazardPmtilesCitiesCityIdHazardsPmtilesGet } from '@networking/api/generated/hazards/hazards'
-import { getZoningPmtilesCitiesCityIdZoningPmtilesGet } from '@networking/api/generated/zoning/zoning'
+import { fetchClient } from '@/lib/api-client'
 import type { MapEngine, HazardTile } from '@/engine/map.engine'
 import { mapLayerReducer, MAP_LAYER_INITIAL } from '@/reducer/map-layer.reducer'
 
@@ -90,14 +89,14 @@ export function MapProvider({ children }: PropsWithChildren) {
 
     let cancelled = false
 
-    listHazardPmtilesCitiesCityIdHazardsPmtilesGet(selectedCity.id)
+    fetchClient.GET('/cities/{city_id}/hazards/pmtiles', { params: { path: { city_id: selectedCity.id } } })
       .then(async res => {
         if (cancelled) return
-        const tiles = await enrichWithSourceLayers(res.data as HazardTile[])
+        if (res.error) return // Province has no hazard data yet.
+        const tiles = await enrichWithSourceLayers(res.data as unknown as HazardTile[])
         if (cancelled) return
         dispatchLayers({ type: 'SET_HAZARD_LAYERS', tiles })
       })
-      .catch(() => { /* Province has no hazard data yet. */ })
 
     return () => {
       cancelled = true
@@ -112,10 +111,10 @@ export function MapProvider({ children }: PropsWithChildren) {
 
     let cancelled = false
 
-    getZoningPmtilesCitiesCityIdZoningPmtilesGet(selectedCity.id)
+    fetchClient.GET('/cities/{city_id}/zoning/pmtiles', { params: { path: { city_id: selectedCity.id } } })
       .then(async res => {
         if (cancelled) return
-        if (!res.data) {
+        if (res.error || !res.data) {
           dispatchLayers({ type: 'SET_ZONING_TILE', tile: null })
           return
         }
@@ -123,9 +122,6 @@ export function MapProvider({ children }: PropsWithChildren) {
         const sl  = await discoverSourceLayer(url)
         if (cancelled) return
         dispatchLayers({ type: 'SET_ZONING_TILE', tile: { url, sourceLayer: sl ?? 'zoning' } })
-      })
-      .catch(() => {
-        dispatchLayers({ type: 'SET_ZONING_TILE', tile: null })
       })
 
     return () => {
@@ -214,11 +210,10 @@ export function MapProvider({ children }: PropsWithChildren) {
 
   const refreshHazardLayers = useCallback(async () => {
     if (!selectedCity?.id) return
-    try {
-      const res   = await listHazardPmtilesCitiesCityIdHazardsPmtilesGet(selectedCity.id)
-      const tiles = await enrichWithSourceLayers(res.data as HazardTile[])
-      dispatchLayers({ type: 'SET_HAZARD_LAYERS', tiles })
-    } catch { /* city has no hazard data */ }
+    const res = await fetchClient.GET('/cities/{city_id}/hazards/pmtiles', { params: { path: { city_id: selectedCity.id } } })
+    if (res.error) return // city has no hazard data
+    const tiles = await enrichWithSourceLayers(res.data as unknown as HazardTile[])
+    dispatchLayers({ type: 'SET_HAZARD_LAYERS', tiles })
   }, [selectedCity?.id])
 
 

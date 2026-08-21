@@ -1,8 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { UseMutationResult } from '@tanstack/react-query'
-import type { AxiosResponse } from 'axios'
-import type { CityCreate } from '@networking/api/model/cityCreate'
-import type { CityResponse } from '@networking/api/model/cityResponse'
+import type { CityCreate } from '@/types/api-aliases'
 import {
   Dialog,
   DialogContent,
@@ -19,7 +16,11 @@ import { Spinner } from '@/components/ui/spinner'
 import { Plus } from 'lucide-react'
 
 interface CreateCityDialogProps {
-  mutation: UseMutationResult<AxiosResponse<CityResponse>, unknown, CityCreate>
+  mutation: {
+    mutateAsync: (variables: { body: CityCreate }) => Promise<unknown>
+    isPending: boolean
+    isError: boolean
+  }
 }
 
 export function CreateCityDialog({ mutation }: CreateCityDialogProps) {
@@ -30,7 +31,7 @@ export function CreateCityDialog({ mutation }: CreateCityDialogProps) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    await mutation.mutateAsync({ name, province: province || null, region: region || null })
+    await mutation.mutateAsync({ body: { name, province: province || null, region: region || null } })
     setOpen(false)
     setName('')
     setProvince('')

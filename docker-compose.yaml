@@ -61,8 +61,11 @@ services:
       - ./backend/.env
     environment:
       POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
       MINIO_HOST: minio
+      MINIO_PORT: "9000"
       REDIS_HOST: redis
+      REDIS_PORT: "6379"
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -81,8 +84,11 @@ services:
       - ./backend/.env
     environment:
       POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
       MINIO_HOST: minio
+      MINIO_PORT: "9000"
       REDIS_HOST: redis
+      REDIS_PORT: "6379"
       SEED_PROVINCE: ${SEED_PROVINCE:-Agusan del Norte}
     entrypoint: ["sh", "scripts/docker_seed.sh"]
     depends_on:

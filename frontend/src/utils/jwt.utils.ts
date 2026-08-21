@@ -1,4 +1,4 @@
-import { tokenManager } from '@/lib/axios'
+import { tokenManager } from '@/lib/token-manager'
 
 export interface TokenClaims {
   exp?: number

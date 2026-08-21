@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { ShieldCheck, Trash2 } from 'lucide-react'
-import type { UserResponse, RoleResponse } from '@networking/api/model'
+import type { UserResponse, RoleResponse } from '@/types/api-aliases'
 import { useUserRoles } from '../composables/use-user-management'
 
 interface Props {

@@ -13,7 +13,7 @@ import { UserTable } from './components/user-table'
 import { UserRoleDialog } from './components/user-role-dialog'
 import { LguInviteDialog } from './components/lgu-invite-dialog'
 import { useUserManagement } from './composables/use-user-management'
-import type { UserResponse } from '@networking/api/model'
+import type { UserResponse } from '@/types/api-aliases'
 
 export function UserManagementPage() {
   const { users, roles, loading, assignRole, revokeRole, assigning, revoking } =

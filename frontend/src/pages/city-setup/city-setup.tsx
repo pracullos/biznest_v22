@@ -27,7 +27,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import type { CityResponse } from "@networking/api/model/cityResponse";
+import type { CityResponse } from "@/types/api-aliases";
 import { useCitySetup } from "./composables/use-city-setup";
 import { CreateCityDialog } from "./components/create-city-dialog";
 

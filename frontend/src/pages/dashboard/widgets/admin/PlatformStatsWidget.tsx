@@ -1,16 +1,11 @@
 import { Users, Building2, ShieldCheck } from 'lucide-react'
-import { useAllUsersUsersGet } from '@networking/api/generated/users/users'
-import { listCitiesCitiesGet } from '@networking/api/generated/cities/cities'
-import { useQuery } from '@tanstack/react-query'
+import { $api } from '@/lib/api-client'
 import { Spinner } from '@/components/ui/spinner'
 import { StatCard } from '../../components/stat-card'
 
 export function PlatformStatsWidget() {
-  const { data: usersData, isLoading: usersLoading } = useAllUsersUsersGet()
-  const { data: citiesData, isLoading: citiesLoading } = useQuery({
-    queryKey: ['/cities/'],
-    queryFn: () => listCitiesCitiesGet().then(r => r.data),
-  })
+  const { data: usersData, isLoading: usersLoading } = $api.useQuery('get', '/users/')
+  const { data: cities, isLoading: citiesLoading } = $api.useQuery('get', '/cities/')
 
   const isLoading = usersLoading || citiesLoading
 
@@ -23,8 +18,7 @@ export function PlatformStatsWidget() {
     )
   }
 
-  const users = usersData?.data ?? []
-  const cities = citiesData ?? []
+  const users = usersData ?? []
 
   const investorCount = users.filter(u => !u.is_superuser).length
   const superuserCount = users.filter(u => u.is_superuser).length
@@ -32,7 +26,7 @@ export function PlatformStatsWidget() {
 
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatCard title="Total Cities" value={cities.length} icon={Building2} />
+      <StatCard title="Total Cities" value={cities?.length ?? 0} icon={Building2} />
       <StatCard title="Total Users" value={totalUsers} icon={Users} />
       <StatCard title="Regular Users" value={investorCount} icon={Users} />
       <StatCard title="Admins" value={superuserCount} icon={ShieldCheck} />

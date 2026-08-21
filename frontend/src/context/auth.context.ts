@@ -1,6 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { UserResponse } from '@networking/api/model/userResponse'
-import type { CityResponse } from '@networking/api/model/cityResponse'
+import type { UserResponse, CityResponse } from '@/types/api-aliases'
 
 export type AuthAction =
   | { type: 'RESTORE_START' }

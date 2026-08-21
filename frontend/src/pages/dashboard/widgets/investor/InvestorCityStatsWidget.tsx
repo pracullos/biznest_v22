@@ -1,8 +1,5 @@
 import { AlertTriangle, Map, Building2 } from 'lucide-react'
-import {
-  useGetCityStatsCitiesCityIdStatsGet,
-  getGetCityStatsCitiesCityIdStatsGetQueryKey,
-} from '@networking/api/generated/cities/cities'
+import { $api } from '@/lib/api-client'
 import { useCityContext } from '@/context/city.context'
 import { Spinner } from '@/components/ui/spinner'
 import { StatCard } from '../../components/stat-card'
@@ -11,10 +8,9 @@ export function InvestorCityStatsWidget() {
   const { selectedCity } = useCityContext()
   const cityId = selectedCity?.id ?? ''
 
-  const { data, isLoading } = useGetCityStatsCitiesCityIdStatsGet(cityId, {
-    query: { enabled: !!cityId, queryKey: getGetCityStatsCitiesCityIdStatsGetQueryKey(cityId) },
-  })
-  const stats = data?.data
+  const { data: stats, isLoading } = $api.useQuery('get', '/cities/{city_id}/stats', {
+    params: { path: { city_id: cityId } },
+  }, { enabled: !!cityId })
 
   if (isLoading) {
     return (

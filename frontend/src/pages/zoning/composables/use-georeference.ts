@@ -1,25 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import { bbox as turfBbox } from '@turf/turf'
-import axios, { type AxiosError } from 'axios'
+import { fetchClient, unwrap } from '@/lib/api-client'
 
 function extractMsg(err: unknown): string {
-  if (!axios.isAxiosError(err)) return String(err)
-  const ae = err as AxiosError<{ detail?: unknown }>
-  const detail = ae.response?.data?.detail
-  if (typeof detail === 'string') return detail
-  if (Array.isArray(detail)) {
-    return detail
-      .map((d: { msg?: string; loc?: unknown[] }) =>
-        [d.loc?.slice(-1)[0], d.msg].filter(Boolean).join(': '))
-      .join(' · ')
+  if (err && typeof err === 'object' && 'detail' in err) {
+    const detail = (err as { detail?: unknown }).detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) {
+      return detail
+        .map((d: { msg?: string; loc?: unknown[] }) =>
+          [d.loc?.slice(-1)[0], d.msg].filter(Boolean).join(': '))
+        .join(' · ')
+    }
   }
-  return ae.message
+  if (err instanceof Error) return err.message
+  return String(err)
 }
 import type { MapEngine, BoundaryGeometry, ImageCorners } from '@/engine/map.engine'
-import { uploadFileFilesUploadPost } from '@networking/api/generated/files/files'
-import { processZoningImageCitiesCityIdZoningProcessImagePost } from '@networking/api/generated/zoning/zoning'
-import type { ZoningProcessResponse } from '@networking/api/model/zoningProcessResponse'
+import type { ZoningProcessResponse } from '@/types/api-aliases'
 
 export type GeoPhase = 'idle' | 'uploading' | 'positioning' | 'processing' | 'done' | 'error'
 
@@ -200,8 +199,10 @@ export function useGeoreference(
     } catch { /* proceed without dims, use default aspect ratio */ }
 
     try {
-      const res = await uploadFileFilesUploadPost({ file })
-      setFileId(res.data.file_id)  // now a clean Document UUID from backend
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = unwrap(await fetchClient.POST('/files/upload', { body: formData as unknown as { file: string } }))
+      setFileId(res.file_id)  // now a clean Document UUID from backend
       // Use the local blob URL for the overlay — avoids CORS/absolute-URL issues with MapLibre
       setImageUrl(objectUrl)
       setPhase('positioning')
@@ -233,14 +234,12 @@ export function useGeoreference(
     ]
 
     try {
-      const res = await processZoningImageCitiesCityIdZoningProcessImagePost(cityId, {
-        file_id:      fileId,
-        gcps,
-        n_colors:     nColors,
-        min_area_px:  minAreaPx,
-      })
+      const res = unwrap(await fetchClient.POST('/cities/{city_id}/zoning/process-image', {
+        params: { path: { city_id: cityId } },
+        body: { file_id: fileId, gcps, n_colors: nColors, min_area_px: minAreaPx },
+      }))
       cleanupOverlay()
-      setResult(res.data)
+      setResult(res)
       setPhase('done')
       onSuccess?.()
     } catch (err) {

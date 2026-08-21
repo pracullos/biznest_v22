@@ -1,6 +1,5 @@
 import { CreditCard } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { getMySubscriptionSubscriptionsMeGet } from '@networking/api/generated/subscriptions/subscriptions'
+import { $api } from '@/lib/api-client'
 import { useAuthContext } from '@/context/auth.context'
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
@@ -11,9 +10,7 @@ export function InvestorSubscriptionWidget() {
   const auth = state.state === 'AUTHENTICATED' ? state : null
   const cityIds = auth?.city_ids ?? []
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['/subscriptions/me'],
-    queryFn: () => getMySubscriptionSubscriptionsMeGet().then(r => r.data),
+  const { data, isLoading } = $api.useQuery('get', '/subscriptions/me', undefined, {
     enabled: !!auth,
     retry: false,
   })

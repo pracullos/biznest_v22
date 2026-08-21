@@ -1,6 +1,6 @@
 import { ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { RoleResponse } from '@networking/api/model'
+import type { RoleResponse } from '@/types/api-aliases'
 
 interface Props {
   roles: RoleResponse[]
