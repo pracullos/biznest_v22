@@ -72,7 +72,7 @@ export function UserRoleDialog({
         <DialogHeader>
           <DialogTitle>Manage Role</DialogTitle>
           <DialogDescription>
-            {user?.username} &middot; {user?.email}
+            {user?.full_name} &middot; {user?.email}
           </DialogDescription>
         </DialogHeader>
 
@@ -113,7 +113,7 @@ export function UserRoleDialog({
                           <AlertDialogTitle>Revoke role?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Remove <strong>{ur.role.name}</strong> from{' '}
-                            <strong>{user?.username}</strong>. The user will lose all associated
+                            <strong>{user?.full_name}</strong>. The user will lose all associated
                             permissions immediately.
                           </AlertDialogDescription>
                         </AlertDialogHeader>

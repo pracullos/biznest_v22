@@ -244,9 +244,6 @@ export function useGeoreference(
       setPhase('done')
       onSuccess?.()
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? ((err.response?.data as { detail?: string })?.detail ?? err.message)
-        : String(err)
       setErrorMsg(extractMsg(err))
       setPhase('error')
     }

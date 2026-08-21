@@ -72,6 +72,28 @@ services:
     networks:
       - biznest_net
 
+  backend-seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: biznest_backend_seed
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: postgres
+      MINIO_HOST: minio
+      REDIS_HOST: redis
+      SEED_PROVINCE: ${SEED_PROVINCE:-Agusan del Norte}
+    entrypoint: ["sh", "scripts/docker_seed.sh"]
+    depends_on:
+      - postgres
+      - minio
+      - backend
+    networks:
+      - biznest_net
+    profiles:
+      - seed
+
   frontend:
     build:
       context: .

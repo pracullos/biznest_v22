@@ -58,8 +58,6 @@ export function CityDetailPage() {
     return acc
   }, {})
 
-  const isPageLoading = cityLoading || statsLoading
-
   return (
     <div className="space-y-6 pb-8">
 

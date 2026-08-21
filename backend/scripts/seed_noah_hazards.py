@@ -16,6 +16,7 @@ Usage:
   python scripts/seed_noah_hazards.py --hazards flood --scenarios 100yr # one scenario
   python scripts/seed_noah_hazards.py --skip-pmtiles                    # geometry only
   python scripts/seed_noah_hazards.py --province Bukidnon               # filter by province file stem
+  python scripts/seed_noah_hazards.py --province AgusanDelNorte         # NOAH files are named without spaces
   python scripts/seed_noah_hazards.py --workers 4                       # default: cpu_count
   python scripts/seed_noah_hazards.py --list-files                      # inspect HF repo
   python scripts/seed_noah_hazards.py --force                           # re-download existing
@@ -573,7 +574,6 @@ def _process_national(
         print("    no features intersect any city", flush=True)
         return
 
-    stem = geojson_path.stem
     scenario_slug = scenario or "all"
 
     for city_id_str, group in joined.groupby("city_id_ref"):
@@ -654,9 +654,15 @@ def seed_hazard_source(
     workers:         int,
     province_filter: Optional[str] = None,
 ) -> None:
-    if province_filter:
+    if province_filter and not is_national:
         geojsons = [g for g in geojsons if province_filter.lower() in g.stem.lower()]
         print(f"  filtered to {len(geojsons)} file(s) matching '{province_filter}'", flush=True)
+    elif province_filter and is_national:
+        print(
+            "  national file (not split by province) — processing in full, "
+            "spatial join naturally scopes rows to intersecting cities",
+            flush=True,
+        )
 
     if not geojsons:
         print("  no files to process", flush=True)
@@ -776,7 +782,7 @@ async def _async_run(
             prefix_dir.mkdir(parents=True, exist_ok=True)
 
             sorted_zips = sorted(zips)
-            if province_filter:
+            if province_filter and not is_national:
                 sorted_zips = [z for z in sorted_zips if province_filter.lower() in Path(z).stem.lower()]
                 print(f"  filtered to {len(sorted_zips)} ZIP(s) matching '{province_filter}'", flush=True)
             total = len(sorted_zips)

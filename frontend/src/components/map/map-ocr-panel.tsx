@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { CheckCircle2, ChevronDown, ChevronUp, ImageIcon, Loader2, RotateCcw, Upload, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import type { GeoPhase, UseGeoreferenceResult } from '@/pages/zoning/composables/use-georeference'
+import type { UseGeoreferenceResult } from '@/pages/zoning/composables/use-georeference'
 
 type Props = Pick<UseGeoreferenceResult,
   | 'phase' | 'result' | 'errorMsg' | 'opacity' | 'nColors' | 'minAreaPx'
@@ -36,8 +36,6 @@ export function MapOcrPanel({
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) void handleFile(file)
   }
-
-  const locked = phase === 'processing'
 
   return (
     <div className="flex flex-col gap-3 p-3 overflow-y-auto flex-1">

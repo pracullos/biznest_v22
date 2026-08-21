@@ -94,7 +94,7 @@ export function HazardPage() {
           hazard_type: drawState.hazardType, scenario: drawState.scenario,
           severity: drawState.severity, geometry,
         })
-        const params = new URLSearchParams({ hazard_type: drawState.hazardType, scenario: drawState.scenario })
+        const params = new URLSearchParams({ hazard_type: drawState.hazardType, scenario: drawState.scenario ?? '' })
         await axios.post(`/cities/${cityId}/hazards/regenerate-pmtiles?${params}`)
       },
       dispatchDraw,
@@ -118,7 +118,7 @@ export function HazardPage() {
           hazard_type: uploadState.hazardType, scenario: uploadState.scenario,
           severity: uploadState.severity, geometry: uploadState.geometry,
         })
-        const params = new URLSearchParams({ hazard_type: uploadState.hazardType, scenario: uploadState.scenario })
+        const params = new URLSearchParams({ hazard_type: uploadState.hazardType, scenario: uploadState.scenario ?? '' })
         await axios.post(`/cities/${cityId}/hazards/regenerate-pmtiles?${params}`)
       },
       dispatchUpload,

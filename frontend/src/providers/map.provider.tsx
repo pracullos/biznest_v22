@@ -115,6 +115,10 @@ export function MapProvider({ children }: PropsWithChildren) {
     getZoningPmtilesCitiesCityIdZoningPmtilesGet(selectedCity.id)
       .then(async res => {
         if (cancelled) return
+        if (!res.data) {
+          dispatchLayers({ type: 'SET_ZONING_TILE', tile: null })
+          return
+        }
         const url = res.data.pmtile_url
         const sl  = await discoverSourceLayer(url)
         if (cancelled) return

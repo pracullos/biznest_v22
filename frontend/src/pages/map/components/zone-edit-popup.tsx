@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS } from '@/config/hazard.config'
+import type { ZoneType } from '@networking/api/model/zoneType'
 
 const PRESET_ZONE_TYPES = Object.keys(ZONE_TYPE_LABELS)
 const selectCls =
@@ -82,7 +83,7 @@ export function ZoneEditPopup() {
     if (!trimmed) return
     setError(null)
     try {
-      await patchZone({ cityId: selectedCity.id, zoneId: clickedZone.id, data: { zone_type: trimmed } })
+      await patchZone({ cityId: selectedCity.id, zoneId: clickedZone.id, data: { zone_type: trimmed as ZoneType } })
       const res = await regenerate({ cityId: selectedCity.id })
       await refreshZoningLayer(res.data.pmtile_url)
       invalidate(selectedCity.id)
