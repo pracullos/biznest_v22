@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { AxiosError } from 'axios'
-import { registerLguAdminUsersLguRegisterPost } from '@networking/api/generated/users/users'
-
-function getErrorMessage(err: unknown): string {
-  const axiosErr = err as AxiosError<{ detail?: string }>
-  return axiosErr?.response?.data?.detail ?? 'Something went wrong. Please try again.'
-}
+import { fetchClient } from '@/lib/api-client'
 
 interface UseLguRegistrationOptions {
   token: string
@@ -38,15 +32,18 @@ export function useLguRegistration({ token, email }: UseLguRegistrationOptions) 
     }
 
     setLoading(true)
-    try {
-      await registerLguAdminUsersLguRegisterPost({ token, email, full_name: fullName.trim(), password })
-      // Backend sets JWT cookie on registration — force full reload so AuthProvider
-      // boots fresh, reads the cookie, and transitions to AUTHENTICATED.
-      window.location.replace('/city-setup')
-    } catch (err) {
-      setError(getErrorMessage(err))
+    const res = await fetchClient.POST('/users/lgu/register', {
+      body: { token, email, full_name: fullName.trim(), password },
+    })
+    if (res.error !== undefined) {
+      const detail = (res.error as { detail?: string } | undefined)?.detail
+      setError(detail ?? 'Something went wrong. Please try again.')
       setLoading(false)
+      return
     }
+    // Backend sets JWT cookie on registration — force full reload so AuthProvider
+    // boots fresh, reads the cookie, and transitions to AUTHENTICATED.
+    window.location.replace('/city-setup')
   }
 
   return {

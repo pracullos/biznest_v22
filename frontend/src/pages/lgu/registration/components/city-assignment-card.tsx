@@ -1,7 +1,7 @@
 import { MapPin, Building2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CityResponse } from '@networking/api/model/cityResponse'
+import type { CityResponse } from '@/types/api-aliases'
 
 interface CityAssignmentCardProps {
   city: CityResponse | null

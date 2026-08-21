@@ -7,13 +7,9 @@ import { simplify } from '@turf/turf'
 import type { Polygon, MultiPolygon, Feature } from 'geojson'
 import type { IControl } from 'maplibre-gl'
 import type { MapEngine } from '@/engine/map.engine'
-import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
-import {
-  getZoningPmtilesCitiesCityIdZoningPmtilesGet,
-  listZoningAreasCitiesCityIdZoningGet,
-} from '@networking/api/generated/zoning/zoning'
-import type { ZoningAreaSummary } from '@networking/api/model/zoningAreaSummary'
+import { fetchClient } from '@/lib/api-client'
+import type { ZoningAreaSummary } from '@/types/api-aliases'
 import { useCityContext } from '@/context/city.context'
 
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
@@ -21,6 +17,15 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 // ── Save helper ──────────────────────────────────────────────────────────────
 // Shared try/catch + dispatch pattern for draw and upload saves in both
 // hazard and zoning pages.
+
+function extractApiErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'detail' in err) {
+    const detail = (err as { detail?: unknown }).detail
+    if (typeof detail === 'string') return detail
+  }
+  if (err instanceof Error) return err.message
+  return String(err)
+}
 
 export async function saveWithDispatch(
   apiCall: () => Promise<void>,
@@ -32,10 +37,7 @@ export async function saveWithDispatch(
     dispatch({ type: 'SAVE_SUCCESS' })
     onSuccess?.()
   } catch (err) {
-    const msg = axios.isAxiosError(err)
-      ? ((err.response?.data as { detail?: string })?.detail ?? err.message)
-      : String(err)
-    dispatch({ type: 'SAVE_ERROR', errorMsg: msg })
+    dispatch({ type: 'SAVE_ERROR', errorMsg: extractApiErrorMessage(err) })
   }
 }
 
@@ -349,7 +351,7 @@ export function useZoningPanel() {
   // retry: false — 404 is expected when the city has no zoning data yet
   const { data: pmtilesRes, isLoading: pmtilesLoading } = useQuery({
     queryKey: [`/cities/${cityId}/zoning/pmtiles`],
-    queryFn:  () => getZoningPmtilesCitiesCityIdZoningPmtilesGet(cityId),
+    queryFn:  () => fetchClient.GET('/cities/{city_id}/zoning/pmtiles', { params: { path: { city_id: cityId } } }),
     enabled:  !!cityId,
     retry:    false,
   })
@@ -357,7 +359,7 @@ export function useZoningPanel() {
 
   const { data: zonesRes, isLoading: zonesLoading } = useQuery({
     queryKey: [`/cities/${cityId}/zoning`],
-    queryFn:  () => listZoningAreasCitiesCityIdZoningGet(cityId),
+    queryFn:  () => fetchClient.GET('/cities/{city_id}/zoning', { params: { path: { city_id: cityId } } }),
     enabled:  !!cityId,
     retry:    false,
   })

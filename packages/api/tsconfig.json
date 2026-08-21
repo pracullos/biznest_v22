@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "rootDir": ".",
-    "composite": true
-  },
-  "include": ["**/*.ts"]
-}

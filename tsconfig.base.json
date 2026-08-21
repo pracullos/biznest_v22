@@ -13,11 +13,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "erasableSyntaxOnly": true,
-    "ignoreDeprecations": "6.0",
-
-    "baseUrl": ".",
-    "paths": {
-      "@networking/api": ["packages/api"]
-    }
+    "ignoreDeprecations": "6.0"
   }
 }

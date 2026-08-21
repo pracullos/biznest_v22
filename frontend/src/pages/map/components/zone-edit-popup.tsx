@@ -3,17 +3,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Check, Loader2, X, PenLine, Trash2, AlertTriangle } from 'lucide-react'
 import { useMapContext } from '@/context/map.context'
 import { useCityContext } from '@/context/city.context'
-import {
-  useUpdateZoningAreaCitiesCityIdZoningZoneIdPatch,
-  useDeleteZoningAreaCitiesCityIdZoningZoneIdDelete,
-  useRegenerateZoningPmtilesCitiesCityIdZoningRegeneratePmtilesPost,
-  getListZoningAreasCitiesCityIdZoningGetQueryKey,
-  getGetZoningPmtilesCitiesCityIdZoningPmtilesGetQueryKey,
-} from '@networking/api/generated/zoning/zoning'
+import { $api } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS } from '@/config/hazard.config'
+import type { ZoneType } from '@/types/api-aliases'
 
 const PRESET_ZONE_TYPES = Object.keys(ZONE_TYPE_LABELS)
 const selectCls =
@@ -64,15 +59,18 @@ export function ZoneEditPopup() {
     }
   }, [engine, clickedZone])
 
-  const { mutateAsync: patchZone, isPending: patching } = useUpdateZoningAreaCitiesCityIdZoningZoneIdPatch()
-  const { mutateAsync: deleteZone, isPending: deleting } = useDeleteZoningAreaCitiesCityIdZoningZoneIdDelete()
-  const { mutateAsync: regenerate, isPending: regenerating } = useRegenerateZoningPmtilesCitiesCityIdZoningRegeneratePmtilesPost()
+  const patchZone   = $api.useMutation('patch', '/cities/{city_id}/zoning/{zone_id}')
+  const deleteZone  = $api.useMutation('delete', '/cities/{city_id}/zoning/{zone_id}')
+  const regenerate  = $api.useMutation('post', '/cities/{city_id}/zoning/regenerate-pmtiles')
+  const patching    = patchZone.isPending
+  const deleting    = deleteZone.isPending
+  const regenerating = regenerate.isPending
   const isBusy = patching || deleting || regenerating
 
   if (!clickedZone || !pos) return null
 
   function extractError(err: unknown): string {
-    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    const detail = err && typeof err === 'object' && 'detail' in err ? (err as { detail?: unknown }).detail : undefined
     return typeof detail === 'string' ? detail : 'Operation failed'
   }
 
@@ -82,9 +80,12 @@ export function ZoneEditPopup() {
     if (!trimmed) return
     setError(null)
     try {
-      await patchZone({ cityId: selectedCity.id, zoneId: clickedZone.id, data: { zone_type: trimmed } })
-      const res = await regenerate({ cityId: selectedCity.id })
-      await refreshZoningLayer(res.data.pmtile_url)
+      await patchZone.mutateAsync({
+        params: { path: { city_id: selectedCity.id, zone_id: clickedZone.id } },
+        body: { zone_type: trimmed as ZoneType },
+      })
+      const res = await regenerate.mutateAsync({ params: { path: { city_id: selectedCity.id } } })
+      await refreshZoningLayer(res.pmtile_url)
       invalidate(selectedCity.id)
       setClickedZone(null)
     } catch (err) {
@@ -96,11 +97,11 @@ export function ZoneEditPopup() {
     if (!selectedCity || !clickedZone) return
     setError(null)
     try {
-      await deleteZone({ cityId: selectedCity.id, zoneId: clickedZone.id })
+      await deleteZone.mutateAsync({ params: { path: { city_id: selectedCity.id, zone_id: clickedZone.id } } })
       // Regenerate PMTile — if no zones remain the endpoint will 404 → clear layer
       try {
-        const res = await regenerate({ cityId: selectedCity.id })
-        await refreshZoningLayer(res.data.pmtile_url)
+        const res = await regenerate.mutateAsync({ params: { path: { city_id: selectedCity.id } } })
+        await refreshZoningLayer(res.pmtile_url)
       } catch {
         await refreshZoningLayer(null)
       }
@@ -113,8 +114,8 @@ export function ZoneEditPopup() {
   }
 
   function invalidate(cityId: string) {
-    queryClient.invalidateQueries({ queryKey: getListZoningAreasCitiesCityIdZoningGetQueryKey(cityId) })
-    queryClient.invalidateQueries({ queryKey: getGetZoningPmtilesCitiesCityIdZoningPmtilesGetQueryKey(cityId) })
+    queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/cities/{city_id}/zoning', { params: { path: { city_id: cityId } } }).queryKey })
+    queryClient.invalidateQueries({ queryKey: $api.queryOptions('get', '/cities/{city_id}/zoning/pmtiles', { params: { path: { city_id: cityId } } }).queryKey })
   }
 
   return (

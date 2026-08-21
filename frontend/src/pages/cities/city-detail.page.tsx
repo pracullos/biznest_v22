@@ -3,12 +3,7 @@ import {
   AlertTriangle, ArrowLeft, Building2, LayoutGrid,
   MapPin, ShieldAlert, UserCheck, UserX, Bell,
 } from 'lucide-react'
-import { useGetCityCitiesCityIdGet, useGetCityStatsCitiesCityIdStatsGet } from '@networking/api/generated/cities/cities'
-import { useListHazardPmtilesCitiesCityIdHazardsPmtilesGet } from '@networking/api/generated/hazards/hazards'
-import { useListZoningAreasCitiesCityIdZoningGet } from '@networking/api/generated/zoning/zoning'
-import { useListEstablishmentsCitiesCityIdEstablishmentsGet } from '@networking/api/generated/establishments/establishments'
-import { useListAssignmentsLguAssignmentsGet } from '@networking/api/generated/lgu-assignments/lgu-assignments'
-import { useAllUsersUsersGet } from '@networking/api/generated/users/users'
+import { $api } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,22 +23,20 @@ export function CityDetailPage() {
   const { cityId } = useParams({ from: '/_protected/cities/$cityId' })
   const navigate = useNavigate()
 
-  const { data: cityRes,    isLoading: cityLoading }    = useGetCityCitiesCityIdGet(cityId)
-  const { data: statsRes,   isLoading: statsLoading }   = useGetCityStatsCitiesCityIdStatsGet(cityId)
-  const { data: hazardRes,  isLoading: hazardLoading }  = useListHazardPmtilesCitiesCityIdHazardsPmtilesGet(cityId)
-  const { data: zoningRes,  isLoading: zoningLoading }  = useListZoningAreasCitiesCityIdZoningGet(cityId)
-  const { data: estabRes,   isLoading: estabLoading }   = useListEstablishmentsCitiesCityIdEstablishmentsGet(cityId)
-  const { data: assignRes }                              = useListAssignmentsLguAssignmentsGet()
-  const { data: usersRes }                               = useAllUsersUsersGet()
+  const { data: city,       isLoading: cityLoading }    = $api.useQuery('get', '/cities/{city_id}', { params: { path: { city_id: cityId } } })
+  const { data: stats,     isLoading: statsLoading }    = $api.useQuery('get', '/cities/{city_id}/stats', { params: { path: { city_id: cityId } } })
+  const { data: hazardRes, isLoading: hazardLoading }   = $api.useQuery('get', '/cities/{city_id}/hazards/pmtiles', { params: { path: { city_id: cityId } } })
+  const { data: zoningRes, isLoading: zoningLoading }   = $api.useQuery('get', '/cities/{city_id}/zoning', { params: { path: { city_id: cityId } } })
+  const { data: estabRes,  isLoading: estabLoading }    = $api.useQuery('get', '/cities/{city_id}/establishments', { params: { path: { city_id: cityId } } })
+  const { data: assignRes }                              = $api.useQuery('get', '/lgu-assignments/')
+  const { data: usersRes }                               = $api.useQuery('get', '/users/')
 
-  const city          = cityRes?.data
-  const stats         = statsRes?.data
-  const hazardTiles   = hazardRes?.data ?? []
-  const zones         = zoningRes?.data ?? []
-  const establishments = estabRes?.data ?? []
+  const hazardTiles    = hazardRes ?? []
+  const zones          = zoningRes ?? []
+  const establishments = estabRes ?? []
 
-  const assignment = assignRes?.data?.find(a => a.city_id === cityId)
-  const lguAdmin   = assignment ? usersRes?.data?.find(u => u.id === assignment.user_id) : null
+  const assignment = assignRes?.find(a => a.city_id === cityId)
+  const lguAdmin   = assignment ? usersRes?.find(u => u.id === assignment.user_id) : null
 
   // Hazard breakdown: unique types → scenario count
   const hazardByType = hazardTiles.reduce<Record<string, number>>((acc, t) => {
@@ -57,8 +50,6 @@ export function CityDetailPage() {
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
-
-  const isPageLoading = cityLoading || statsLoading
 
   return (
     <div className="space-y-6 pb-8">

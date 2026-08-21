@@ -1,5 +1,5 @@
 import { ShieldAlert } from 'lucide-react'
-import { useListHazardPmtilesCitiesCityIdHazardsPmtilesGet } from '@networking/api/generated/hazards/hazards'
+import { $api } from '@/lib/api-client'
 import { useCityContext } from '@/context/city.context'
 import { Spinner } from '@/components/ui/spinner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -20,9 +20,9 @@ export function InvestorHazardWidget() {
   const { selectedCity } = useCityContext()
   const cityId = selectedCity?.id ?? ''
 
-  const { data, isLoading } = useListHazardPmtilesCitiesCityIdHazardsPmtilesGet(cityId)
-
-  const pmtiles = data?.data ?? []
+  const { data: pmtiles = [], isLoading } = $api.useQuery('get', '/cities/{city_id}/hazards/pmtiles', {
+    params: { path: { city_id: cityId } },
+  }, { enabled: !!cityId })
 
   const grouped = pmtiles.reduce<Record<string, number>>((acc, tile) => {
     const key = tile.hazard_type

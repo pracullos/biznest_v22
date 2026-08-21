@@ -1,7 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { getMySubscriptionSubscriptionsMeGet } from '@networking/api/generated/subscriptions/subscriptions'
-import { listEstablishmentsCitiesCityIdEstablishmentsGet } from '@networking/api/generated/establishments/establishments'
-import { useGetCityStats } from '@networking/api/cities-stats'
+import { $api } from '@/lib/api-client'
 import { useAuthContext } from '@/context/auth.context'
 import { useCityContext } from '@/context/city.context'
 
@@ -9,20 +6,17 @@ export function useDashboardData() {
   const { state } = useAuthContext()
   const { selectedCity } = useCityContext()
   const auth = state.state === 'AUTHENTICATED' ? state : null
-  const cityId = selectedCity?.id ?? null
+  const cityId = selectedCity?.id ?? ''
 
-  const { data: statsData, isLoading: statsLoading } = useGetCityStats(cityId)
-  const stats = statsData?.data
+  const { data: stats, isLoading: statsLoading } = $api.useQuery('get', '/cities/{city_id}/stats', {
+    params: { path: { city_id: cityId } },
+  }, { enabled: !!cityId })
 
-  const { data: establishments = [], isLoading: establishmentsLoading } = useQuery({
-    queryKey: [`/cities/${cityId}/establishments`],
-    queryFn: () => listEstablishmentsCitiesCityIdEstablishmentsGet(cityId!).then(r => r.data),
-    enabled: !!cityId,
-  })
+  const { data: establishments = [], isLoading: establishmentsLoading } = $api.useQuery('get', '/cities/{city_id}/establishments', {
+    params: { path: { city_id: cityId } },
+  }, { enabled: !!cityId })
 
-  const { data: subscription } = useQuery({
-    queryKey: ['/subscriptions/me'],
-    queryFn: () => getMySubscriptionSubscriptionsMeGet().then(r => r.data),
+  const { data: subscription } = $api.useQuery('get', '/subscriptions/me', undefined, {
     enabled: auth?.role_name === 'investor',
     retry: false,
   })

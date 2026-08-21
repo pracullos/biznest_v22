@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import type { SubscriptionPlanResponse } from '@networking/api/model'
+import type { SubscriptionPlanResponse } from '@/types/api-aliases'
 
 interface PlanMeta {
   tagline: string
