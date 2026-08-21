@@ -1,24 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
-import { getMySubscriptionSubscriptionsMeGet } from '@networking/api/generated/subscriptions/subscriptions'
-import { listCitiesCitiesGet } from '@networking/api/generated/cities/cities'
-import { myAccessCityAccessMeGet } from '@networking/api/generated/city-access/city-access'
+import { $api } from '@/lib/api-client'
 
 export function useSubscription() {
-  const { data: subscription, isLoading: subLoading } = useQuery({
-    queryKey: ['/subscriptions/me'],
-    queryFn: () => getMySubscriptionSubscriptionsMeGet().then(r => r.data),
+  const { data: subscription, isLoading: subLoading } = $api.useQuery('get', '/subscriptions/me', undefined, {
     retry: false,
   })
 
-  const { data: access = [], isLoading: accessLoading } = useQuery({
-    queryKey: ['/city-access/me'],
-    queryFn: () => myAccessCityAccessMeGet().then(r => r.data),
-  })
+  const { data: access = [], isLoading: accessLoading } = $api.useQuery('get', '/city-access/me')
 
-  const { data: allCities = [], isLoading: citiesLoading } = useQuery({
-    queryKey: ['/cities/'],
-    queryFn: () => listCitiesCitiesGet().then(r => r.data),
-  })
+  const { data: allCities = [], isLoading: citiesLoading } = $api.useQuery('get', '/cities/')
 
   const accessedCityIds = access.map(a => a.city_id)
   const accessibleCities = allCities.filter(c => accessedCityIds.includes(c.id))

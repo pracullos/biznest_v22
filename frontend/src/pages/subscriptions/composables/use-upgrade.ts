@@ -1,18 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import {
-  listPlansSubscriptionsPlansGet,
-  getMySubscriptionSubscriptionsMeGet,
-} from '@networking/api/generated/subscriptions/subscriptions'
+import { $api } from '@/lib/api-client'
 
 export function useUpgrade() {
-  const { data: plans = [], isLoading: plansLoading } = useQuery({
-    queryKey: ['/subscriptions/plans'],
-    queryFn: () => listPlansSubscriptionsPlansGet().then(r => r.data),
-  })
+  const { data: plans = [], isLoading: plansLoading } = $api.useQuery('get', '/subscriptions/plans')
 
-  const { data: subscription, isLoading: subLoading } = useQuery({
-    queryKey: ['/subscriptions/me'],
-    queryFn: () => getMySubscriptionSubscriptionsMeGet().then(r => r.data),
+  const { data: subscription, isLoading: subLoading } = $api.useQuery('get', '/subscriptions/me', undefined, {
     retry: false,
   })
 

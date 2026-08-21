@@ -1,12 +1,12 @@
 {
-  "name": "@networking/api",
+  "name": "biznest-v2",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "generate:api": "orval"
+    "generate:api": "pnpm --filter frontend run generate:api"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +14,6 @@
   "packageManager": "pnpm@10.30.0",
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "orval": "^8.8.0",
     "turbo": "^2.9.6"
   }
 }

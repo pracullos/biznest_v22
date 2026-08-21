@@ -1,5 +1,5 @@
 import { Bell } from 'lucide-react'
-import { useListAlertsCitiesCityIdAlertsGet } from '@networking/api/generated/alerts/alerts'
+import { $api } from '@/lib/api-client'
 import { useCityContext } from '@/context/city.context'
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
@@ -20,9 +20,10 @@ export function LguAlertsWidget() {
   const { selectedCity } = useCityContext()
   const cityId = selectedCity?.id ?? ''
 
-  const { data, isLoading } = useListAlertsCitiesCityIdAlertsGet(cityId)
+  const { data: alerts = [], isLoading } = $api.useQuery('get', '/cities/{city_id}/alerts', {
+    params: { path: { city_id: cityId } },
+  }, { enabled: !!cityId })
 
-  const alerts = data?.data ?? []
   const recent = alerts.slice(0, 5)
 
   return (

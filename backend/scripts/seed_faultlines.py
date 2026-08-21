@@ -11,7 +11,8 @@ as HazardArea rows scoped to that city.
 Usage:
   python scripts/seed_faultlines.py              # seed + generate PMTiles
   python scripts/seed_faultlines.py --skip-pmtiles
-  python scripts/seed_faultlines.py --city Butuan  # one city only
+  python scripts/seed_faultlines.py --city Butuan               # one city only
+  python scripts/seed_faultlines.py --province "Agusan del Norte"  # one province only
 """
 
 from __future__ import annotations
@@ -50,9 +51,20 @@ FAULTLINE_GEOJSON = BACKEND_DIR / "geo_hazard" / "faultline" / "faultline.geojso
 
 @dataclass
 class CityInfo:
-    id:   str
-    name: str
-    code: Optional[str]
+    id:       str
+    name:     str
+    code:     Optional[str]
+    province: Optional[str] = None
+
+
+def _province_matches(value: Optional[str], filt: Optional[str]) -> bool:
+    """Case/space-insensitive substring match, e.g. 'AgusanDelNorte' matches 'Agusan del Norte'."""
+    if not filt:
+        return True
+    if not value:
+        return False
+    norm = lambda s: "".join(ch for ch in s.lower() if ch.isalnum())
+    return norm(filt) in norm(value)
 
 
 def _build_cities_gdf(db) -> tuple:
@@ -62,7 +74,10 @@ def _build_cities_gdf(db) -> tuple:
     ids, geoms, infos = [], [], {}
     for c in db.query(City).filter(City.boundary.isnot(None)).all():
         try:
-            info = CityInfo(id=str(c.id), name=str(c.name), code=str(c.code) if c.code else None)
+            info = CityInfo(
+                id=str(c.id), name=str(c.name), code=str(c.code) if c.code else None,
+                province=str(c.province) if c.province else None,
+            )
             ids.append(str(c.id))
             geoms.append(to_shape(c.boundary))
             infos[str(c.id)] = info
@@ -158,7 +173,11 @@ def _replace_features(
 # Seeder
 # ---------------------------------------------------------------------------
 
-def seed_faultlines(skip_pmtiles: bool, city_filter: Optional[str] = None) -> None:
+def seed_faultlines(
+    skip_pmtiles: bool,
+    city_filter: Optional[str] = None,
+    province_filter: Optional[str] = None,
+) -> None:
     import geopandas as gpd
     import shapely
 
@@ -201,6 +220,15 @@ def seed_faultlines(skip_pmtiles: bool, city_filter: Optional[str] = None) -> No
         cities_gdf  = cities_gdf[cities_gdf["city_id_ref"].isin(filtered_ids)].reset_index(drop=True)
         city_infos  = {k: v for k, v in city_infos.items() if k in filtered_ids}
         print(f"  filtered to {len(cities_gdf)} city/cities matching '{city_filter}'", flush=True)
+
+    if province_filter:
+        filtered_ids = [
+            cid for cid, info in city_infos.items()
+            if _province_matches(info.province, province_filter)
+        ]
+        cities_gdf  = cities_gdf[cities_gdf["city_id_ref"].isin(filtered_ids)].reset_index(drop=True)
+        city_infos  = {k: v for k, v in city_infos.items() if k in filtered_ids}
+        print(f"  filtered to {len(cities_gdf)} city/cities in province '{province_filter}'", flush=True)
 
     if cities_gdf.empty:
         print("  No matching cities — nothing to seed.")
@@ -266,6 +294,8 @@ if __name__ == "__main__":
     parser.add_argument("--skip-pmtiles", action="store_true")
     parser.add_argument("--city", default=None, metavar="NAME",
                         help="Seed only cities whose name contains NAME (case-insensitive)")
+    parser.add_argument("--province", default=None, metavar="NAME",
+                        help="Seed only cities in the given province (case/space-insensitive, e.g. 'Agusan del Norte')")
     args = parser.parse_args()
 
     if not args.skip_pmtiles and not _check_tippecanoe():
@@ -279,5 +309,5 @@ if __name__ == "__main__":
     print("\n" + "=" * 55)
     print("  FAULTLINES")
     print("=" * 55)
-    seed_faultlines(skip_pmtiles=args.skip_pmtiles, city_filter=args.city)
+    seed_faultlines(skip_pmtiles=args.skip_pmtiles, city_filter=args.city, province_filter=args.province)
     print("\nDone.")

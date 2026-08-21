@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { AxiosError } from 'axios'
 import { useAuthContext } from '@/context/auth.context'
 
 function getErrorMessage(err: unknown): string {
-  const axiosErr = err as AxiosError<{ detail?: string }>
-  return axiosErr?.response?.data?.detail ?? 'Something went wrong. Please try again.'
+  const detail = (err as { detail?: string } | undefined)?.detail
+  return detail ?? 'Something went wrong. Please try again.'
 }
 
 export function useLguRegisterForm() {

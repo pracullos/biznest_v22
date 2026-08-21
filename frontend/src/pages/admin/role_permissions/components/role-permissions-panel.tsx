@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import type { RoleWithPermissionsResponse, PermissionResponse } from '@networking/api/model'
+import type { RoleWithPermissionsResponse, PermissionResponse } from '@/types/api-aliases'
 
 interface Props {
   role: RoleWithPermissionsResponse

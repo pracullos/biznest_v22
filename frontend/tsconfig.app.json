@@ -8,11 +8,7 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"],
-      "@networking/api": ["../packages/api"],
-      "@networking/api/*": ["../packages/api/*"],
-      "@networking/service": ["../packages/service/src"],
-      "@networking/service/*": ["../packages/service/src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
